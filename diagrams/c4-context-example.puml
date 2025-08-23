@@ -1,0 +1,24 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+' Title and description definition
+TITLE E-commerce System - Context Diagram
+
+' People definition (actors)
+Person(customer, "Customer", "User who buys products online")
+Person(admin, "Administrator", "Manages the system and products")
+
+' Systems definition
+System(ecommerce, "E-commerce System", "Allows customers to browse and buy products online")
+System_Ext(payment, "Payment System", "Processes credit card payments")
+System_Ext(email, "Email System", "Sends confirmation emails and notifications")
+System_Ext(inventory, "Inventory System", "Manages product inventory")
+
+' Relationships definition
+Rel(customer, ecommerce, "Browses and buys products", "HTTPS")
+Rel(admin, ecommerce, "Manages products and orders", "HTTPS")
+Rel(ecommerce, payment, "Processes payments", "REST API")
+Rel(ecommerce, email, "Sends notifications", "SMTP")
+Rel(ecommerce, inventory, "Queries inventory", "REST API")
+
+@enduml

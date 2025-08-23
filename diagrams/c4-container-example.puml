@@ -1,0 +1,40 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+' Title definition
+TITLE E-commerce System - Container Diagram
+
+' People definition
+Person(customer, "Customer", "User who buys products")
+Person(admin, "Administrator", "Manages the system")
+
+' System boundary definition
+System_Boundary(c1, "E-commerce System") {
+    Container(web_app, "Web Application", "React, JavaScript", "User interface for browsing and shopping")
+    Container(api, "API Gateway", "Spring Boot, Java", "Provides functionality via REST API")
+    Container(auth_service, "Authentication Service", "Spring Security, JWT", "Manages authentication and authorization")
+    Container(product_service, "Product Service", "Spring Boot, Java", "Manages product catalog")
+    Container(order_service, "Order Service", "Spring Boot, Java", "Processes orders and payments")
+    ContainerDb(database, "Database", "PostgreSQL", "Stores product, user and order data")
+    Container(cache, "Cache", "Redis", "Cache to improve performance")
+}
+
+' External systems
+System_Ext(payment, "Payment System", "Processes payments")
+System_Ext(email, "Email System", "Sends notifications")
+
+' Relationships
+Rel(customer, web_app, "Uses", "HTTPS")
+Rel(admin, web_app, "Uses", "HTTPS")
+Rel(web_app, api, "Makes API calls", "JSON/HTTPS")
+Rel(api, auth_service, "Validates tokens", "HTTP")
+Rel(api, product_service, "Queries products", "HTTP")
+Rel(api, order_service, "Processes orders", "HTTP")
+Rel(product_service, database, "Reads/Writes", "SQL")
+Rel(order_service, database, "Reads/Writes", "SQL")
+Rel(auth_service, database, "Reads/Writes", "SQL")
+Rel(product_service, cache, "Caches products", "Redis Protocol")
+Rel(order_service, payment, "Processes payment", "REST API")
+Rel(order_service, email, "Sends confirmation", "SMTP")
+
+@enduml
