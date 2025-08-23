@@ -1,0 +1,45 @@
+@startuml
+left to right direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+skinparam nodesep 10
+skinparam ranksep 10
+
+TITLE Multi-Region Microservices with Global LB & DB Replication
+
+Person(user, "User", "Interacts with the application")
+
+Container(glb_lb, "Global Load Balancer", "DNS / Cloud LB", "Distributes traffic across regions")
+
+System_Boundary(region1, "Region 1 (us-east-1)") {
+  Container(lb1, "Local Load Balancer", "ELB", "Balances traffic within region")
+  Container(user_service1, "User Service", "Spring Boot", "Handles user profiles")
+  Container(order_service1, "Order Service", "Spring Boot", "Processes orders")
+  ContainerDb(user_db1, "User Database", "PostgreSQL", "Stores user data")
+  ContainerDb(order_db1, "Order Database", "PostgreSQL", "Stores order data")
+}
+
+System_Boundary(region2, "Region 2 (eu-west-1)") {
+  Container(lb2, "Local Load Balancer", "ELB", "Balances traffic within region")
+  Container(user_service2, "User Service", "Spring Boot", "Handles user profiles")
+  Container(order_service2, "Order Service", "Spring Boot", "Processes orders")
+  ContainerDb(user_db2, "User Database", "PostgreSQL", "Stores user data")
+  ContainerDb(order_db2, "Order Database", "PostgreSQL", "Stores order data")
+}
+
+Rel(user, glb_lb, "Sends requests", "HTTPS")
+Rel(glb_lb, lb1, "Routes to", "HTTPS")
+Rel(glb_lb, lb2, "Routes to", "HTTPS")
+
+Rel(lb1, user_service1, "Routes to", "HTTP/JSON")
+Rel(lb1, order_service1, "Routes to", "HTTP/JSON")
+Rel(user_service1, user_db1, "Reads/Writes", "JDBC/SQL")
+Rel(order_service1, order_db1, "Reads/Writes", "JDBC/SQL")
+
+Rel(lb2, user_service2, "Routes to", "HTTP/JSON")
+Rel(lb2, order_service2, "Routes to", "HTTP/JSON")
+Rel(user_service2, user_db2, "Reads/Writes", "JDBC/SQL")
+Rel(order_service2, order_db2, "Reads/Writes", "JDBC/SQL")
+
+Rel(user_db1, user_db2, "Replicates data to", "Streaming Replication")
+Rel(order_db1, order_db2, "Replicates data to", "Streaming Replication")
+@enduml

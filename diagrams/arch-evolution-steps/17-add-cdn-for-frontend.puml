@@ -1,0 +1,19 @@
+@startuml
+left to right direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+skinparam nodesep 10
+skinparam ranksep 10
+
+TITLE CDN → Frontend Application
+
+Person(user, "User", "Accesses the application via web browser")
+
+Container(cdn, "CDN", "CloudFront/Akamai", "Serves static frontend assets at edge")
+
+System_Boundary(web_system, "Web Application System") {
+  Container(frontend, "Frontend Application", "React, JavaScript", "Single‐page app loaded in the browser")
+}
+
+Rel(user, cdn, "Requests static assets", "HTTPS")
+Rel(cdn, frontend, "Delivers HTML/CSS/JS", "HTTPS")
+@enduml

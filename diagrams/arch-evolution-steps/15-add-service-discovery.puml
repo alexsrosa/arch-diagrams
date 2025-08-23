@@ -1,0 +1,26 @@
+@startuml
+left to right direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+skinparam nodesep 10
+skinparam ranksep 10
+
+TITLE Microservices with Dynamic Service Discovery
+
+Container(service_discovery, "Service Discovery", "Eureka/Consul", "Registry for dynamic lookup of service endpoints")
+
+System_Boundary(microservices, "Microservices System") {
+  Container(user_service,      "User Service",      "Spring Boot, gRPC", "Manages user profiles")
+  Container(order_service,     "Order Service",     "Spring Boot, gRPC", "Processes orders")
+  Container(inventory_service, "Inventory Service", "Spring Boot, gRPC", "Manages inventory levels")
+}
+
+' Registration & discovery
+Rel(user_service,      service_discovery, "Registers & discovers peers", "HTTP")
+Rel(order_service,     service_discovery, "Registers & discovers peers", "HTTP")
+Rel(inventory_service, service_discovery, "Registers & discovers peers", "HTTP")
+
+' Internal RPC calls via resolved endpoints
+Rel(order_service, user_service,      "Fetches user info (via SD)",      "gRPC")
+Rel(order_service, inventory_service,"Checks stock levels (via SD)",   "gRPC")
+
+@enduml

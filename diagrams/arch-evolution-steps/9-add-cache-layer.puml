@@ -1,0 +1,20 @@
+@startuml
+left to right direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+skinparam nodesep 10
+skinparam ranksep 10
+
+TITLE Order Service with Redis Cache
+
+Person(user, "User", "Places orders via web interface")
+
+System_Boundary(order_system, "Order Processing System") {
+    Container(order_service, "Order Service", "Spring Boot", "Handles order processing and caching")
+    Container(cache, "Cache (Redis)", "Redis", "In-memory cache for order data")
+    ContainerDb(database, "Order Database", "PostgreSQL", "Persists order data")
+}
+
+Rel(user, order_service, "Places orders", "HTTP/JSON")
+Rel(order_service, cache, "Reads/Writes", "Redis Protocol")
+Rel(cache, database, "Loads on cache miss", "JDBC/SQL")
+@enduml

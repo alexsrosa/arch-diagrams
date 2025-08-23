@@ -1,0 +1,20 @@
+@startuml
+left to right direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+skinparam nodesep 10
+skinparam ranksep 10
+
+TITLE Event-Driven Integration: Order → Kafka → Inventory
+
+Person(user, "User", "Places orders via web interface")
+
+System_Boundary(app_system, "Application System") {
+  Container(order_service, "Order Service", "Spring Boot", "Handles order processing and publishes events")
+  Container(message_broker, "Message Broker", "Apache Kafka", "Event streaming platform")
+  Container(inventory_service, "Inventory Service", "Spring Boot", "Consumes order events to update inventory")
+}
+
+Rel(user, order_service, "Places order", "HTTP/JSON")
+Rel(order_service, message_broker, "Publishes OrderCreated events", "Kafka Topic")
+Rel(inventory_service, message_broker, "Consumes OrderCreated events", "Kafka Topic")
+@enduml

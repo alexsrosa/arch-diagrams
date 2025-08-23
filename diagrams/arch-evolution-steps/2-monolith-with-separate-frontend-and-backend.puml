@@ -1,0 +1,23 @@
+@startuml
+left to right direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+skinparam nodesep 10
+skinparam ranksep 10
+
+TITLE Monolithic Application – Container Diagram
+
+Person(user, "User", "Interacts via web browser")
+
+System_Boundary(monolith, "Monolithic Application") {
+  Container(frontend, "Frontend", "JavaScript/React", "Renders UI and handles user interactions")
+  Container(backend, "Backend", "Java/Spring Boot", "Hosts business logic and REST APIs")
+}
+
+ContainerDb(database, "Database", "PostgreSQL", "Persists all application data")
+
+Rel(user, frontend, "Uses", "HTTPS")
+Rel(frontend, backend, "Calls APIs", "HTTP/JSON")
+Rel(backend, database, "Reads/Writes data", "JDBC/SQL")
+
+@enduml

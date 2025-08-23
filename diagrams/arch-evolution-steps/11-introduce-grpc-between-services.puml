@@ -1,0 +1,17 @@
+@startuml
+left to right direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+skinparam nodesep 10
+skinparam ranksep 10
+
+TITLE Microservices Communicating via gRPC
+
+System_Boundary(microservices, "Microservices System") {
+  Container(user_service, "User Service", "Spring Boot, gRPC", "Manages user profiles and authentication")
+  Container(order_service, "Order Service", "Spring Boot, gRPC", "Processes orders")
+  Container(inventory_service, "Inventory Service", "Spring Boot, gRPC", "Manages inventory levels")
+}
+
+Rel(order_service, user_service, "Validates user details", "gRPC")
+Rel(order_service, inventory_service, "Checks inventory stock", "gRPC")
+@enduml

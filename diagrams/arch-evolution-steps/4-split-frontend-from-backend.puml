@@ -1,0 +1,23 @@
+@startuml
+left to right direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+skinparam nodesep 10
+skinparam ranksep 10
+
+TITLE Separated Frontend & Backend Services with Shared Database
+
+Person(user, "User", "Interacts via web browser")
+
+System_Boundary(app_system, "Application System") {
+  Container(frontend, "Frontend Service", "React, JavaScript", "Renders UI and handles user interactions")
+  Container(backend, "Backend Service", "Node.js/Express", "Offers REST APIs and business logic")
+}
+
+ContainerDb(database, "Database", "PostgreSQL", "Stores all application data")
+
+Rel(user, frontend, "Uses", "HTTPS")
+Rel(frontend, backend, "Calls API", "HTTP/JSON")
+Rel(backend, database, "Reads/Writes data", "JDBC/SQL")
+
+@enduml

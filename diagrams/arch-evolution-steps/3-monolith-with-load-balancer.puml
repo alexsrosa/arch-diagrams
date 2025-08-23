@@ -1,0 +1,25 @@
+@startuml
+left to right direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+skinparam nodesep 10
+skinparam ranksep 10
+
+TITLE Monolithic Application with Load Balancer
+
+Person(user, "User", "Accesses the application via web browser")
+
+System_Boundary(monolith_system, "Monolithic System") {
+  Container(lb, "Load Balancer", "NGINX", "Distributes incoming traffic across instances")
+  Container(monolith1, "Monolith Instance 1", "Java/Spring Boot", "Handles UI, business logic and data access")
+  Container(monolith2, "Monolith Instance 2", "Java/Spring Boot", "Handles UI, business logic and data access")
+}
+
+ContainerDb(database, "Database", "PostgreSQL", "Stores all application data")
+
+Rel(user, lb, "Uses", "HTTPS")
+Rel(lb, monolith1, "Routes to", "HTTP")
+Rel(lb, monolith2, "Routes to", "HTTP")
+Rel(monolith1, database, "Reads/Writes data", "JDBC/SQL")
+Rel(monolith2, database, "Reads/Writes data", "JDBC/SQL")
+@enduml

@@ -1,0 +1,24 @@
+@startuml
+left to right direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+skinparam nodesep 10
+skinparam ranksep 10
+
+' Diagram Title
+TITLE Monolithic Application - Container Diagram
+
+' Define the user
+Person(user, "User", "Accesses the application via web interface")
+
+' Define the system boundary
+System_Boundary(monolith_system, "Monolithic System") {
+    Container(web_app, "Web Application", "Java/Spring Boot", "Handles UI, business logic, and data access in a single deployable unit")
+    ContainerDb(database, "Database", "PostgreSQL", "Stores all application data")
+}
+
+' Relationships
+Rel(user, web_app, "Uses", "HTTPS")
+Rel(web_app, database, "Reads/Writes", "JDBC/SQL")
+
+@enduml

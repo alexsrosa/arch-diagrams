@@ -1,0 +1,31 @@
+@startuml
+left to right direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+skinparam nodesep 10
+skinparam ranksep 10
+
+TITLE Frontend → BFF → API Gateway → Microservices
+
+Person(user, "User", "Interacts via web browser")
+
+System_Boundary(app_system, "Application System") {
+  
+  Container(frontend, "Frontend", "React, JavaScript", "Single-page application UI")
+  Container(bff, "Backend For Frontend (BFF)", "Node.js/Express", "Aggregates calls from multiple microservices for the UI")
+  Container(api_gateway, "API Gateway", "Kong/Zuul", "Routes and secures incoming requests")
+
+  System_Boundary(microservices, "Microservices") {
+    Container(user_service,    "User Service",    "Spring Boot", "Manages user profiles and auth")
+    Container(order_service,   "Order Service",   "Spring Boot", "Handles order placement and tracking")
+    Container(product_service, "Product Service", "Spring Boot", "Provides product catalog data")
+  }
+
+}
+
+Rel(user,      frontend,      "Uses",                       "HTTPS")
+Rel(frontend,  bff,           "Calls BFF APIs",             "HTTP/JSON")
+Rel(bff,       api_gateway,   "Forwards & aggregates calls","HTTP/JSON")
+Rel(api_gateway, user_service,    "Routes to", "HTTP/JSON")
+Rel(api_gateway, order_service,   "Routes to", "HTTP/JSON")
+Rel(api_gateway, product_service, "Routes to", "HTTP/JSON")
+@enduml

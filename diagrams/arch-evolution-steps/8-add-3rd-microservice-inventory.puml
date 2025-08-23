@@ -1,0 +1,35 @@
+@startuml
+left to right direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+skinparam nodesep 10
+skinparam ranksep 10
+
+TITLE API Gateway → User, Order & Inventory Services with Dedicated Databases
+
+Person(user, "User", "Sends API requests via HTTP/JSON")
+
+System_Boundary(app_system, "Application System") {
+  
+  Container(api_gateway, "API Gateway", "Kong/Zuul", "Routes and secures incoming traffic")
+
+  System_Boundary(microservices, "Microservices") {
+    Container(user_service, "User Service", "Spring Boot", "Manages user profiles and authentication")
+    ContainerDb(user_db, "User Database", "PostgreSQL", "Stores user data")
+
+    Container(order_service, "Order Service", "Spring Boot", "Handles order processing and history")
+    ContainerDb(order_db, "Order Database", "PostgreSQL", "Stores order data")
+
+    Container(inventory_service, "Inventory Service", "Spring Boot", "Manages stock levels and product availability")
+    ContainerDb(inventory_db, "Inventory Database", "PostgreSQL", "Stores inventory data")
+  }
+}
+
+Rel(user, api_gateway, "Sends requests to", "HTTP/JSON")
+Rel(api_gateway, user_service, "Routes to", "HTTP/JSON")
+Rel(api_gateway, order_service, "Routes to", "HTTP/JSON")
+Rel(api_gateway, inventory_service, "Routes to", "HTTP/JSON")
+
+Rel(user_service, user_db, "Reads/Writes", "JDBC/SQL")
+Rel(order_service, order_db, "Reads/Writes", "JDBC/SQL")
+Rel(inventory_service, inventory_db, "Reads/Writes", "JDBC/SQL")
+@enduml

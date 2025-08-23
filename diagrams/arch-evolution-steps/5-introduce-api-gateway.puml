@@ -1,0 +1,23 @@
+@startuml
+left to right direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+skinparam nodesep 10
+skinparam ranksep 10
+
+TITLE Frontend → API Gateway → Backend → Database
+
+Person(user, "User", "Interacts via web browser")
+
+System_Boundary(app_system, "Application System") {
+  Container(frontend, "Frontend", "React, JavaScript", "Renders UI and handles user interactions")
+  Container(api_gateway, "API Gateway", "Kong/Zuul", "Routes requests, handles authentication")
+  Container(backend, "Backend Service", "Node.js/Express", "Hosts business logic and REST APIs")
+  ContainerDb(database, "Database", "PostgreSQL", "Stores all application data")
+}
+
+Rel(user, frontend, "Uses", "HTTPS")
+Rel(frontend, api_gateway, "Sends API calls", "HTTP/JSON")
+Rel(api_gateway, backend, "Forwards requests", "HTTP/JSON")
+Rel(backend, database, "Reads/Writes data", "JDBC/SQL")
+@enduml

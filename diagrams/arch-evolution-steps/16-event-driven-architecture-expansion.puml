@@ -1,0 +1,24 @@
+@startuml
+left to right direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+skinparam nodesep 10
+skinparam ranksep 10
+
+TITLE Event-Driven Microservices via Kafka
+
+Container(messaging, "Event Broker\nApache Kafka", "Kafka", "Decoupled event streaming platform")
+
+System_Boundary(app_system, "Microservices") {
+    Container(user_service,         "User Service",         "Spring Boot", "Publishes UserCreated events")
+    Container(order_service,        "Order Service",        "Spring Boot", "Publishes OrderCreated; consumes PaymentProcessed")
+    Container(inventory_service,    "Inventory Service",    "Spring Boot", "Consumes OrderCreated; publishes StockReserved")
+    Container(payment_service,      "Payment Service",      "Spring Boot", "Consumes OrderCreated; publishes PaymentProcessed")
+    Container(notification_service, "Notification Service", "Spring Boot", "Consumes events; sends notifications")
+}
+
+Rel(user_service,      messaging, "Publishes UserCreated",                   "Kafka Topic")
+Rel(order_service,     messaging, "Publishes OrderCreated\nConsumes PaymentProcessed", "Kafka Topic")
+Rel(inventory_service, messaging, "Consumes OrderCreated\nPublishes StockReserved",  "Kafka Topic")
+Rel(payment_service,   messaging, "Consumes OrderCreated\nPublishes PaymentProcessed","Kafka Topic")
+Rel(notification_service, messaging,"Consumes UserCreated, OrderCreated,\nPaymentProcessed, StockReserved","Kafka Topic")
+@enduml

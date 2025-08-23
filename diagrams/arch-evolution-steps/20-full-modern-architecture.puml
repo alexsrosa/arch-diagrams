@@ -1,0 +1,119 @@
+@startuml
+left to right direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+skinparam nodesep 10
+skinparam ranksep 10
+
+TITLE Multi-Region CDN → BFF → API Gateway → Event-Driven Microservices
+
+Person(user, "User", "Interacts via web browser")
+
+' Static asset delivery
+Container(cdn, "CDN", "CloudFront/Akamai", "Serves static frontend assets")
+Container(frontend, "Frontend", "React SPA", "Loaded in browser")
+
+Rel(user, cdn, "Fetches assets", "HTTPS")
+Rel(cdn, frontend, "Delivers HTML/CSS/JS", "HTTPS")
+
+' Region 1
+System_Boundary(region1, "Region 1") {
+  Container(bff1, "BFF", "Node.js/Express", "Aggregates UI calls")
+  Container(api_gw1, "API Gateway", "Kong/Zuul", "Routes & secures requests")
+  Container(sd1, "Service Discovery", "Consul/Eureka", "Registry for services")
+
+  Container(user_svc1,      "User Service",      "Spring Boot, gRPC", "Manages users")
+  Container(order_svc1,     "Order Service",     "Spring Boot, gRPC", "Processes orders & caching")
+  Container(inventory_svc1, "Inventory Service", "Spring Boot, gRPC", "Manages stock")
+
+  ContainerDb(user_db1,      "User DB",      "PostgreSQL", "User data")
+  ContainerDb(order_db1,     "Order DB",     "PostgreSQL", "Order data")
+  Container(cache1,          "Order Cache",  "Redis",      "Caches order reads")
+  ContainerDb(inventory_db1, "Inventory DB","PostgreSQL", "Inventory data")
+
+  ' Frontend → BFF → API Gateway
+  Rel(frontend, bff1,   "Calls UI APIs",        "HTTP/JSON")
+  Rel(bff1,      api_gw1, "Forwards aggregated calls", "HTTP/JSON")
+
+  ' API Gateway → services (via SD)
+  Rel(api_gw1, sd1,          "Discovers endpoints",       "HTTP")
+  Rel(api_gw1, user_svc1,    "Routes to",                 "HTTP/JSON")
+  Rel(api_gw1, order_svc1,   "Routes to",                 "HTTP/JSON")
+  Rel(api_gw1, inventory_svc1,"Routes to",                "HTTP/JSON")
+
+  ' Service registration
+  Rel(user_svc1,      sd1, "Registers & heartbeats",    "HTTP")
+  Rel(order_svc1,     sd1, "Registers & heartbeats",    "HTTP")
+  Rel(inventory_svc1, sd1, "Registers & heartbeats",    "HTTP")
+
+  ' Persistence & cache
+  Rel(user_svc1, user_db1,         "Reads/Writes", "JDBC/SQL")
+  Rel(order_svc1, cache1,          "Reads/Writes", "Redis Protocol")
+  Rel(order_svc1, order_db1,       "Reads/Writes", "JDBC/SQL")
+  Rel(inventory_svc1, inventory_db1,"Reads/Writes","JDBC/SQL")
+
+  ' Internal gRPC calls
+  Rel(order_svc1, user_svc1,      "Fetches user info", "gRPC")
+  Rel(order_svc1, inventory_svc1,"Checks stock",       "gRPC")
+}
+
+' Region 2 (mirrors Region 1)
+System_Boundary(region2, "Region 2") {
+  Container(bff2, "BFF", "Node.js/Express", "Aggregates UI calls")
+  Container(api_gw2, "API Gateway", "Kong/Zuul", "Routes & secures requests")
+  Container(sd2, "Service Discovery", "Consul/Eureka", "Registry for services")
+
+  Container(user_svc2,      "User Service",      "Spring Boot, gRPC", "Manages users")
+  Container(order_svc2,     "Order Service",     "Spring Boot, gRPC", "Processes orders & caching")
+  Container(inventory_svc2, "Inventory Service", "Spring Boot, gRPC", "Manages stock")
+
+  ContainerDb(user_db2,      "User DB",      "PostgreSQL", "User data")
+  ContainerDb(order_db2,     "Order DB",     "PostgreSQL", "Order data")
+  Container(cache2,          "Order Cache",  "Redis",      "Caches order reads")
+  ContainerDb(inventory_db2, "Inventory DB","PostgreSQL", "Inventory data")
+
+  Rel(frontend, bff2,   "Calls UI APIs",        "HTTP/JSON")
+  Rel(bff2,      api_gw2, "Forwards aggregated calls", "HTTP/JSON")
+
+  Rel(api_gw2, sd2,          "Discovers endpoints",       "HTTP")
+  Rel(api_gw2, user_svc2,    "Routes to",                 "HTTP/JSON")
+  Rel(api_gw2, order_svc2,   "Routes to",                 "HTTP/JSON")
+  Rel(api_gw2, inventory_svc2,"Routes to",                "HTTP/JSON")
+
+  Rel(user_svc2,      sd2, "Registers & heartbeats",    "HTTP")
+  Rel(order_svc2,     sd2, "Registers & heartbeats",    "HTTP")
+  Rel(inventory_svc2, sd2, "Registers & heartbeats",    "HTTP")
+
+  Rel(user_svc2, user_db2,         "Reads/Writes", "JDBC/SQL")
+  Rel(order_svc2, cache2,          "Reads/Writes", "Redis Protocol")
+  Rel(order_svc2, order_db2,       "Reads/Writes", "JDBC/SQL")
+  Rel(inventory_svc2, inventory_db2,"Reads/Writes","JDBC/SQL")
+
+  Rel(order_svc2, user_svc2,      "Fetches user info", "gRPC")
+  Rel(order_svc2, inventory_svc2,"Checks stock",       "gRPC")
+}
+
+' Cross-region event streaming & observability
+Container(messaging, "Event Broker", "Apache Kafka", "Global event bus")
+Container(monitoring, "Monitoring", "Prometheus & Grafana", "Metrics aggregation")
+Container(logging, "Logging", "ELK Stack", "Central log store")
+
+Rel(order_svc1,      messaging, "Publishes OrderCreated", "Kafka Topic")
+Rel(inventory_svc1,  messaging, "Consumes OrderCreated",  "Kafka Topic")
+Rel(order_svc2,      messaging, "Publishes OrderCreated", "Kafka Topic")
+Rel(inventory_svc2,  messaging, "Consumes OrderCreated",  "Kafka Topic")
+
+Rel(user_svc1,         monitoring, "Emits metrics", "Prometheus Client")
+Rel(order_svc1,        monitoring, "Emits metrics", "Prometheus Client")
+Rel(inventory_svc1,    monitoring, "Emits metrics", "Prometheus Client")
+Rel(user_svc2,         monitoring, "Emits metrics", "Prometheus Client")
+Rel(order_svc2,        monitoring, "Emits metrics", "Prometheus Client")
+Rel(inventory_svc2,    monitoring, "Emits metrics", "Prometheus Client")
+
+Rel(user_svc1,      logging, "Sends logs to", "Logstash")
+Rel(order_svc1,     logging, "Sends logs to", "Logstash")
+Rel(inventory_svc1, logging, "Sends logs to", "Logstash")
+Rel(user_svc2,      logging, "Sends logs to", "Logstash")
+Rel(order_svc2,     logging, "Sends logs to", "Logstash")
+Rel(inventory_svc2, logging, "Sends logs to", "Logstash")
+
+@enduml

@@ -40,11 +40,11 @@ System_Boundary(main_system, "Microservices System") {
 ' Main relationships - Request flow
 Rel(user, frontend, "Accesses application", "HTTPS")
 Rel(frontend, bff, "API requests", "JSON/HTTPS")
-Rel(bff, api_gateway, "Aggregated calls", "JSON/HTTP")
-Rel(api_gateway, load_balancer, "Distributes requests", "HTTP")
+Rel(bff, load_balancer, "Aggregated calls", "JSON/HTTP")
+Rel(load_balancer, api_gateway, "Routes & Auth", "HTTP")
 
 ' Load Balancer to Microservices
-Rel(load_balancer, microservices, "Routing", "HTTP")
+Rel(api_gateway, microservices, "Routing", "HTTP")
 
 ' Microservices to Data Layer
 Rel(microservices, databases, "Persistence", "SQL")

@@ -1,0 +1,30 @@
+@startuml
+left to right direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+skinparam nodesep 10
+skinparam ranksep 10
+
+TITLE Frontend → API Gateway → Microservices with Dedicated Databases
+
+Person(user, "User", "Interacts via web browser")
+
+System_Boundary(app_system, "Application System") {
+  Container(frontend, "Frontend", "React, JavaScript", "Renders UI and handles user interactions")
+  Container(api_gateway, "API Gateway", "Kong/Zuul", "Routes and secures API requests")
+
+  System_Boundary(microservices, "Microservices") {
+    Container(user_service, "User Service", "Spring Boot", "Manages user profiles and authentication")
+    ContainerDb(user_db, "User Database", "PostgreSQL", "Stores user data")
+
+    Container(order_service, "Order Service", "Spring Boot", "Processes orders and order history")
+    ContainerDb(order_db, "Order Database", "PostgreSQL", "Stores order data")
+  }
+}
+
+Rel(user, frontend, "Uses", "HTTPS")
+Rel(frontend, api_gateway, "Sends API calls to", "HTTP/JSON")
+Rel(api_gateway, user_service, "Forwards to", "HTTP/JSON")
+Rel(api_gateway, order_service, "Forwards to", "HTTP/JSON")
+Rel(user_service, user_db, "Reads/Writes", "JDBC/SQL")
+Rel(order_service, order_db, "Reads/Writes", "JDBC/SQL")
+@enduml

@@ -1,0 +1,44 @@
+@startuml
+left to right direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+skinparam nodesep 10
+skinparam ranksep 10
+
+TITLE Microservices with Monitoring & Centralized Logging
+
+Person(user, "User", "Sends API requests via HTTP/JSON")
+
+System_Boundary(app_system, "Application System") {
+  Container(api_gateway, "API Gateway", "Kong/Zuul", "Routes and secures incoming traffic")
+
+  System_Boundary(microservices, "Microservices") {
+    Container(user_service, "User Service", "Spring Boot", "Manages user profiles and authentication")
+    Container(order_service, "Order Service", "Spring Boot", "Processes orders")
+    Container(inventory_service, "Inventory Service", "Spring Boot", "Manages inventory levels")
+  }
+
+  ContainerDb(user_db, "User Database", "PostgreSQL", "Stores user data")
+  ContainerDb(order_db, "Order Database", "PostgreSQL", "Stores order data")
+  ContainerDb(inventory_db, "Inventory Database", "PostgreSQL", "Stores inventory data")
+}
+
+Container(monitoring, "Monitoring System", "Prometheus & Grafana", "Collects and visualizes metrics")
+Container(logging, "Centralized Logging", "ELK Stack", "Aggregates and stores logs")
+
+Rel(user, api_gateway, "Sends requests to", "HTTP/JSON")
+Rel(api_gateway, user_service, "Routes to", "HTTP/JSON")
+Rel(api_gateway, order_service, "Routes to", "HTTP/JSON")
+Rel(api_gateway, inventory_service, "Routes to", "HTTP/JSON")
+
+Rel(user_service, user_db, "Reads/Writes", "JDBC/SQL")
+Rel(order_service, order_db, "Reads/Writes", "JDBC/SQL")
+Rel(inventory_service, inventory_db, "Reads/Writes", "JDBC/SQL")
+
+Rel(user_service, monitoring, "Emits metrics", "Prometheus Client")
+Rel(order_service, monitoring, "Emits metrics", "Prometheus Client")
+Rel(inventory_service, monitoring, "Emits metrics", "Prometheus Client")
+
+Rel(user_service, logging, "Sends logs to", "Logstash")
+Rel(order_service, logging, "Sends logs to", "Logstash")
+Rel(inventory_service, logging, "Sends logs to", "Logstash")
+@enduml

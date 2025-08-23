@@ -1,0 +1,28 @@
+@startuml
+left to right direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+skinparam nodesep 10
+skinparam ranksep 10
+
+TITLE API Gateway with Auth Service for Microservices
+
+Person(user, "User", "Interacts via web or client")
+
+System_Boundary(app_system, "Application System") {
+    Container(api_gateway, "API Gateway", "Kong/Zuul", "Routes and secures incoming requests")
+    Container(auth_service, "Auth Service", "Spring Boot, OAuth2", "Validates credentials and issues JWTs")
+
+    System_Boundary(microservices, "Microservices") {
+        Container(user_service, "User Service", "Spring Boot", "Manages user profiles and authentication data")
+        Container(order_service, "Order Service", "Spring Boot", "Handles order processing")
+        Container(inventory_service, "Inventory Service", "Spring Boot", "Manages inventory levels")
+    }
+}
+
+Rel(user, auth_service, "Authenticates credentials and receives JWT", "HTTP/JSON")
+Rel(user, api_gateway, "Sends API requests with JWT", "HTTP/JSON")
+Rel(api_gateway, auth_service, "Validates JWT", "HTTP/JSON")
+Rel(api_gateway, user_service, "Routes authenticated requests to", "HTTP/JSON")
+Rel(api_gateway, order_service, "Routes authenticated requests to", "HTTP/JSON")
+Rel(api_gateway, inventory_service, "Routes authenticated requests to", "HTTP/JSON")
+@enduml
