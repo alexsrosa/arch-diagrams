@@ -1,0 +1,34 @@
+@startuml
+actor User
+participant "Order Service" as OrderService
+participant "Inventory Service" as InventoryService
+database "Inventory Database" as InventoryDB
+database "Order Database" as OrderDB
+
+User -> OrderService : POST /orders\n{ productId, quantity }
+activate OrderService
+
+OrderService -> InventoryService : GET /inventory/{productId}/stock
+activate InventoryService
+
+InventoryService -> InventoryDB : SELECT stock\nFROM inventory\nWHERE productId = ?
+activate InventoryDB
+InventoryDB --> InventoryService : stock count
+deactivate InventoryDB
+
+InventoryService --> OrderService : 200 OK\n{ stock count }
+deactivate InventoryService
+
+alt stock >= requested
+    OrderService -> OrderDB : INSERT INTO orders(...)
+    activate OrderDB
+    OrderDB --> OrderService : orderId
+    deactivate OrderDB
+
+    OrderService --> User : 201 Created\n{ orderId }
+else stock < requested
+    OrderService --> User : 409 Conflict\n"Out of stock"
+end
+
+deactivate OrderService
+@enduml

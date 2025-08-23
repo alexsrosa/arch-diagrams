@@ -1,0 +1,18 @@
+@startuml
+actor User
+participant Backend
+participant Database
+
+User -> Backend : POST /login\n{ username, password }
+activate Backend
+
+Backend -> Database : SELECT password_hash\nFROM users\nWHERE username = ?
+activate Database
+Database --> Backend : password_hash
+deactivate Database
+
+Backend -> Backend : verify(password, password_hash)
+
+Backend --> User : 200 OK\n{ authToken, userInfo }
+deactivate Backend
+@enduml

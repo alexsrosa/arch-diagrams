@@ -1,0 +1,23 @@
+@startuml
+actor Frontend
+participant "API Gateway" as APIGW
+participant "Backend Service" as Backend
+database "Database" as DB
+
+Frontend -> APIGW : GET /api/resource
+activate APIGW
+
+APIGW -> Backend : GET /api/resource
+activate Backend
+
+Backend -> DB : SELECT * FROM resource\nWHERE id = ?
+activate DB
+DB --> Backend : resource data
+deactivate DB
+
+Backend --> APIGW : 200 OK\n{ resource data }
+deactivate Backend
+
+APIGW --> Frontend : 200 OK\n{ resource data }
+deactivate APIGW
+@enduml

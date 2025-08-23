@@ -1,0 +1,32 @@
+@startuml
+actor Frontend
+participant "Backend Service" as Backend
+participant "Cache" as Cache
+database "Database" as DB
+
+Frontend -> Backend : GET /resource/{id}
+activate Backend
+
+Backend -> Cache : GET resource:{id}
+activate Cache
+alt Cache Hit
+    Cache --> Backend : resource data
+    deactivate Cache
+else Cache Miss
+    Cache --> Backend : (empty)
+    deactivate Cache
+
+    Backend -> DB : SELECT * FROM resource\nWHERE id = {id}
+    activate DB
+    DB --> Backend : resource data
+    deactivate DB
+
+    Backend -> Cache : SET resource:{id} = resource data
+    activate Cache
+    Cache --> Backend : OK
+    deactivate Cache
+end
+
+Backend --> Frontend : 200 OK\n{resource data}
+deactivate Backend
+@enduml

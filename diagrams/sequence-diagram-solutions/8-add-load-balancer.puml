@@ -1,0 +1,26 @@
+@startuml
+participant "API Gateway" as APIGW
+participant "Load Balancer" as LB
+participant "Order Service Instance 1" as OSvc1
+participant "Order Service Instance 2" as OSvc2
+
+APIGW -> LB : GET /api/orders
+activate LB
+
+alt Route to Instance 1
+  LB -> OSvc1 : GET /api/orders
+  activate OSvc1
+  OSvc1 -> OSvc1 : process order request
+  OSvc1 --> LB : 200 OK {order data}
+  deactivate OSvc1
+else Route to Instance 2
+  LB -> OSvc2 : GET /api/orders
+  activate OSvc2
+  OSvc2 -> OSvc2 : process order request
+  OSvc2 --> LB : 200 OK {order data}
+  deactivate OSvc2
+end
+
+LB --> APIGW : 200 OK {order data}
+deactivate LB
+@enduml

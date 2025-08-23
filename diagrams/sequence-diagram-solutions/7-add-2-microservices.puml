@@ -1,0 +1,36 @@
+@startuml
+actor Frontend
+participant "API Gateway" as APIGW
+participant "User Service" as UserService
+database "User Database" as UserDB
+participant "Order Service" as OrderService
+database "Order Database" as OrderDB
+
+Frontend -> APIGW : GET /api/dashboard
+activate APIGW
+
+par Fetch User Profile
+    APIGW -> UserService : GET /api/users/{id}
+    activate UserService
+    UserService -> UserDB : SELECT * FROM users WHERE id = ?
+    activate UserDB
+    UserDB --> UserService : user data
+    deactivate UserDB
+    UserService --> APIGW : user data
+    deactivate UserService
+end
+
+par Fetch User Orders
+    APIGW -> OrderService : GET /api/orders?userId={id}
+    activate OrderService
+    OrderService -> OrderDB : SELECT * FROM orders WHERE userId = ?
+    activate OrderDB
+    OrderDB --> OrderService : order list
+    deactivate OrderDB
+    OrderService --> APIGW : order list
+    deactivate OrderService
+end
+
+APIGW --> Frontend : 200 OK\n{ userProfile, orders }
+deactivate APIGW
+@enduml

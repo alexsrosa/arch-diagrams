@@ -1,0 +1,18 @@
+@startuml
+actor Frontend
+participant "Monolithic REST API" as Monolith
+database "User Database" as DB
+
+Frontend -> Monolith : POST /api/login\n{ "username", "password" }
+activate Monolith
+
+Monolith -> DB : SELECT password_hash\nFROM users\nWHERE username = ?
+activate DB
+DB --> Monolith : password_hash
+deactivate DB
+
+Monolith -> Monolith : validate credentials
+
+Monolith --> Frontend : 200 OK\n{ "token": "eyJhbGciOi..." }
+deactivate Monolith
+@enduml

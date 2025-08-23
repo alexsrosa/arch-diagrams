@@ -1,0 +1,11 @@
+@startuml
+participant "Order Service" as OrderService
+participant "Inventory Service" as InventoryService
+
+OrderService -> InventoryService : CheckAvailability(productId)\nvia gRPC
+activate InventoryService
+
+InventoryService -> InventoryService : lookupStock(productId)
+InventoryService --> OrderService : { available: true,\n  quantity: 42 }
+deactivate InventoryService
+@enduml

@@ -1,0 +1,17 @@
+@startuml
+actor Frontend
+participant "Backend Service" as Backend
+database "Database" as DB
+
+Frontend -> Backend : GET /resource
+activate Backend
+
+Backend -> DB : SELECT * FROM resource\nWHERE id = ?
+activate DB
+DB --> Backend : resource data
+deactivate DB
+
+Backend --> Frontend : 200 OK\n{ resource data }
+deactivate Backend
+
+@enduml
