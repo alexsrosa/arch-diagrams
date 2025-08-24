@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="4-split-frontend-and-backend" agent="PlantUML Converter" version="1.0" etag="plantuml-diagram" type="device">
+  <diagram id="plantuml-4-split-frontend-and-backend" name="4-split-frontend-and-backend">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="plantuml-container" value="" style="shape=image;html=1;verticalAlign=top;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;imageAspect=0;aspect=fixed;image=data:image/svg+xml,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNDAwIDMwMCI+CiAgPHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSIzMDAiIGZpbGw9IiNmOGY5ZmEiIHN0cm9rZT0iI2RlZTJlNiIvPgogIDx0ZXh0IHg9IjIwMCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM2Yzc1N2QiPgogICAgRGlhZ3JhbWEgUGxhbnRVTUw6IDQtc3BsaXQtZnJvbnRlbmQtYW5kLWJhY2tlbmQKICA8L3RleHQ+CiAgPHRleHQgeD0iMjAwIiB5PSIxNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzZjNzU3ZCI+CiAgICAoU1ZHIG7Do28gZGlzcG9uw612ZWwgLSB1c2UgbyBjw7NkaWdvIFBsYW50VU1MIGluY29ycG9yYWRvKQogIDwvdGV4dD4KPC9zdmc+;plantuml=QHN0YXJ0dW1sCmFjdG9yIEZyb250ZW5kCnBhcnRpY2lwYW50ICJCYWNrZW5kIFNlcnZpY2UiIGFzIEJhY2tlbmQKZGF0YWJhc2UgIkRhdGFiYXNlIiBhcyBEQgoKRnJvbnRlbmQgLT4gQmFja2VuZCA6IEdFVCAvcmVzb3VyY2UKYWN0aXZhdGUgQmFja2VuZAoKQmFja2VuZCAtPiBEQiA6IFNFTEVDVCAqIEZST00gcmVzb3VyY2VcbldIRVJFIGlkID0gPwphY3RpdmF0ZSBEQgpEQiAtLT4gQmFja2VuZCA6IHJlc291cmNlIGRhdGEKZGVhY3RpdmF0ZSBEQgoKQmFja2VuZCAtLT4gRnJvbnRlbmQgOiAyMDAgT0tcbnsgcmVzb3VyY2UgZGF0YSB9CmRlYWN0aXZhdGUgQmFja2VuZAoKQGVuZHVtbAo=;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="400" height="300" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,4 +1,4 @@
-@startuml Kubernetes Service Mesh Architecture
+@startuml
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 
 title Kubernetes with Istio Service Mesh for Advanced Microservices Management

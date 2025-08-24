@@ -1,4 +1,4 @@
-@startuml Write-Read Splitting Architecture
+@startuml
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 
 title Write-Read Splitting for Database Performance Optimization

@@ -74,24 +74,7 @@
                             <verbose>true</verbose>
                         </configuration>
                     </execution>
-                    <execution>
-                        <id>generate-svg-diagrams</id>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                        <phase>generate-resources</phase>
-                        <configuration>
-                            <sourceFiles>
-                                <directory>${basedir}/diagrams</directory>
-                                <includes>
-                                    <include>**/*.puml</include>
-                                </includes>
-                            </sourceFiles>
-                            <outputDirectory>${basedir}/docs/drawio-exports</outputDirectory>
-                            <format>svg</format>
-                            <verbose>true</verbose>
-                        </configuration>
-                    </execution>
+
                 </executions>
                 <dependencies>
                     <dependency>

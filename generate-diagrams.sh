@@ -30,15 +30,16 @@ show_help() {
     echo "Usage: $0 [OPTION]"
     echo ""
     echo "Options:"
-    echo "  -a, --all       Generate PNG and SVG (default)"
+    echo "  -a, --all       Generate PNG and Draw.io XML (default)"
     echo "  -p, --png       Generate PNG only"
-    echo "  -s, --svg       Generate SVG only for draw.io"
+    echo "  -d, --drawio    Generate Draw.io XML only"
     echo "  -c, --clean     Clean generated files first"
     echo "  -h, --help      Display this help"
     echo ""
     echo "Examples:"
-    echo "  $0              # Generate PNG and SVG"
+    echo "  $0              # Generate PNG and Draw.io XML"
     echo "  $0 --png       # Generate PNG only"
+    echo "  $0 --drawio    # Generate Draw.io XML only"
     echo "  $0 --clean     # Clean and generate all"
 }
 
@@ -49,11 +50,31 @@ generate_png() {
     echo "✅ PNG generated in: docs/generated-diagrams/"
 }
 
-# Function to generate SVG
-generate_svg() {
-    echo "🎨 Generating SVG diagrams for draw.io..."
-    mvn com.github.jeluard:plantuml-maven-plugin:generate@generate-svg-diagrams -q
-    echo "✅ SVG generated in: docs/drawio-exports/"
+
+
+# Function to generate Draw.io XML files
+generate_drawio_xml() {
+    echo "📐 Generating Draw.io XML files..."
+    
+    # Check if Python converter script exists
+    if [ ! -f "plantuml_to_drawio.py" ]; then
+        echo "❌ plantuml_to_drawio.py not found. Cannot generate Draw.io XML files."
+        return 1
+    fi
+    
+    # Check if Python is available
+    if ! command -v python3 &> /dev/null; then
+        echo "❌ Python 3 not found. Cannot generate Draw.io XML files."
+        return 1
+    fi
+    
+    # Create output directory
+    mkdir -p docs/drawio-xml-exports
+    
+    # Convert all PlantUML files to Draw.io XML
+    python3 plantuml_to_drawio.py diagrams/ docs/drawio-xml-exports/
+    
+    echo "✅ Draw.io XML files generated in: docs/drawio-xml-exports/"
 }
 
 # Function to clean
@@ -68,7 +89,8 @@ list_generated() {
     echo ""
     echo "📁 Generated files:"
     ls -lh docs/generated-diagrams/ 2>/dev/null || true
-    ls -lh docs/drawio-exports/ 2>/dev/null || true
+
+    ls -lh docs/drawio-xml-exports/ 2>/dev/null || true
 }
 
 # Simple argument parsing
@@ -77,8 +99,9 @@ while [[ $# -gt 0 ]]; do
   case $1 in
     -p|--png)
       ACTION="png"; shift ;;
-    -s|--svg)
-      ACTION="svg"; shift ;;
+
+    -d|--drawio)
+      ACTION="drawio"; shift ;;
     -c|--clean)
       ACTION="clean"; shift ;;
     -h|--help)
@@ -95,17 +118,18 @@ case "$ACTION" in
   png)
     generate_png
     ;;
-  svg)
-    generate_svg
+
+  drawio)
+    generate_drawio_xml
     ;;
   clean)
     clean_files
     generate_png
-    generate_svg
+    generate_drawio_xml
     ;;
   all)
     generate_png
-    generate_svg
+    generate_drawio_xml
     ;;
   *)
     show_help; exit 1 ;;
@@ -113,4 +137,6 @@ esac
 
 list_generated
 
-echo -e "\n✅ Completed successfully. Tip: import SVG files from docs/drawio-exports/ into draw.io for visual editing."
+echo -e "\n✅ Completed successfully."
+echo "💡 Tips:"
+echo "   • Import XML files from docs/drawio-xml-exports/ into draw.io for full editing with PlantUML code embedded"

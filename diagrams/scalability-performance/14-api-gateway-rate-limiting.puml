@@ -1,4 +1,4 @@
-@startuml API Gateway with Rate Limiting
+@startuml
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 
 title API Gateway with Rate Limiting and Traffic Shaping

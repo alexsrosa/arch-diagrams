@@ -1,4 +1,4 @@
-@startuml Global Scalability Full Architecture
+@startuml
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 
 title Complete Global Scalability Architecture - Enterprise-Grade Solution

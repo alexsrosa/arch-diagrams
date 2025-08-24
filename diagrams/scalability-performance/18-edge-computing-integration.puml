@@ -1,4 +1,4 @@
-@startuml Edge Computing Integration
+@startuml
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 
 title Edge Computing Integration for Low-Latency Global Applications
