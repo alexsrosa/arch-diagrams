@@ -1,0 +1,264 @@
+@startuml
+!theme plain
+title Distributed Denial of Service (DDoS) Mitigation Architecture
+
+actor "Legitimate User" as legit
+actor "Attacker" as attacker
+participant "CDN/Edge" as cdn
+participant "DDoS Protection" as ddos
+participant "Rate Limiter" as ratelimit
+participant "Web Application Firewall" as waf
+participant "Load Balancer" as lb
+participant "Reverse Proxy" as proxy
+participant "Web Server 1" as web1
+participant "Web Server 2" as web2
+participant "Database" as db
+participant "Monitoring System" as monitor
+participant "Security Team" as security
+
+note over legit, security
+  DDoS mitigation protects against volumetric, protocol,
+  and application-layer attacks through multiple defense layers
+end note
+
+== Normal Traffic Flow ==
+
+legit -> cdn: 1. HTTP/HTTPS request\n(legitimate user traffic)
+activate cdn
+
+cdn -> cdn: 2. Edge processing:\n- Static content serving\n- Geographic optimization\n- Basic filtering\n- Cache hit/miss
+
+alt Cache Hit
+    cdn --> legit: 3a. Cached response\n(fast delivery)
+    deactivate cdn
+else Cache Miss
+    cdn -> ddos: 3b. Forward to origin\n(dynamic content)
+    activate ddos
+end
+
+== DDoS Detection and Mitigation ==
+
+attacker -> cdn: 4. Malicious traffic\n(high volume attack)
+activate cdn
+
+cdn -> ddos: 5. Forward suspicious traffic\n(anomaly detected)
+activate ddos
+
+ddos -> ddos: 6. Traffic analysis:\n- Volume thresholds\n- Request patterns\n- Source IP analysis\n- Behavioral signatures\n- Machine learning detection
+
+alt DDoS Attack Detected
+    ddos -> monitor: 7a. Alert DDoS attack\n(attack classification)
+    activate monitor
+    
+    monitor -> security: 8a. Notify security team\n(incident response)
+    activate security
+    
+    security -> security: 9a. Incident assessment:\n    - Attack vector analysis\n    - Impact evaluation\n    - Mitigation strategy\n    - Resource allocation
+    
+    ddos -> ddos: 10a. Apply mitigation:\n    - Traffic shaping\n    - IP blacklisting\n    - Rate limiting\n    - Challenge-response\n    - Behavioral analysis
+    
+    alt Volumetric Attack (Layer 3/4)
+        ddos -> ddos: 11a. Network-level mitigation:\n        - Bandwidth throttling\n        - SYN flood protection\n        - UDP flood filtering\n        - ICMP rate limiting
+        
+        ddos --> attacker: 12a. Drop malicious packets\n(network filtering)
+        
+    else Protocol Attack (Layer 4)
+        ddos -> ddos: 11b. Protocol-level mitigation:\n        - TCP state validation\n        - Connection limits\n        - Fragmentation handling\n        - Protocol anomaly detection
+        
+        ddos --> attacker: 12b. Reset connections\n(protocol validation)
+        
+    else Application Attack (Layer 7)
+        ddos -> ratelimit: 11c. Forward to rate limiter\n(application-layer filtering)
+        activate ratelimit
+        
+        ratelimit -> ratelimit: 12c. Rate limiting rules:\n        - Requests per IP\n        - Concurrent connections\n        - Resource consumption\n        - API call limits
+        
+        alt Rate Limit Exceeded
+            ratelimit --> attacker: 13c1. Rate limit response\n(429 Too Many Requests)
+        else Within Limits
+            ratelimit -> waf: 13c2. Forward to WAF\n(legitimate traffic)
+            activate waf
+        end
+        
+        deactivate ratelimit
+    end
+    
+else Normal Traffic
+    ddos -> ratelimit: 7b. Forward normal traffic\n(no attack detected)
+    activate ratelimit
+    
+    ratelimit -> waf: 8b. Pass rate limiting\n(within thresholds)
+    activate waf
+end
+
+== Web Application Firewall ==
+
+waf -> waf: 13. Application-layer inspection:\n- SQL injection detection\n- XSS prevention\n- CSRF protection\n- Input validation\n- Signature matching
+
+alt Malicious Request
+    waf -> monitor: 14a. Log security event\n(attack attempt)
+    waf --> attacker: 15a. Block request\n(403 Forbidden)
+    deactivate waf
+else Clean Request
+    waf -> lb: 14b. Forward clean request\n(application security passed)
+    activate lb
+    deactivate waf
+end
+
+== Load Balancing and Health Checks ==
+
+lb -> lb: 16. Load balancing decision:\n- Server health status\n- Current load distribution\n- Response time metrics\n- Connection counts
+
+lb -> web1: 17. Health check\n(server availability)
+activate web1
+web1 --> lb: 18. Health status\n(server operational)
+deactivate web1
+
+lb -> web2: 19. Health check\n(server availability)
+activate web2
+web2 --> lb: 20. Health status\n(server operational)
+deactivate web2
+
+alt Server Overloaded
+    lb -> proxy: 21a. Route to proxy\n(traffic distribution)
+    activate proxy
+    
+    proxy -> proxy: 22a. Request queuing:\n    - Queue management\n    - Priority handling\n    - Timeout management\n    - Resource allocation
+    
+    proxy -> web1: 23a. Forward request\n(when capacity available)
+    activate web1
+    
+    web1 -> db: 24a. Database query\n(if needed)
+    activate db
+    db --> web1: 25a. Query result
+    deactivate db
+    
+    web1 --> proxy: 26a. Response
+    deactivate web1
+    
+    proxy --> lb: 27a. Proxied response
+    deactivate proxy
+    
+else Server Available
+    lb -> web2: 21b. Direct routing\n(server has capacity)
+    activate web2
+    
+    web2 -> db: 22b. Database query\n(if needed)
+    activate db
+    db --> web2: 23b. Query result
+    deactivate db
+    
+    web2 --> lb: 24b. Response
+    deactivate web2
+end
+
+lb --> ddos: 28. Response\n(successful processing)
+deactivate lb
+
+ddos --> cdn: 29. Forward response\n(origin response)
+deactivate ddos
+
+cdn --> legit: 30. Final response\n(delivered to user)
+deactivate cdn
+
+== Monitoring and Analytics ==
+
+monitor -> monitor: 31. Continuous monitoring:\n- Traffic patterns\n- Attack signatures\n- Performance metrics\n- Resource utilization\n- Response times
+
+monitor -> monitor: 32. Analytics processing:\n- Attack classification\n- Trend analysis\n- Baseline establishment\n- Anomaly detection\n- Predictive modeling
+
+alt Attack Escalation
+    monitor -> security: 33a. Escalate incident\n(severe attack detected)
+    
+    security -> security: 34a. Advanced response:\n    - Additional resources\n    - ISP coordination\n    - Law enforcement\n    - Customer communication
+    
+    security -> ddos: 35a. Update mitigation\n(enhanced protection)
+    activate ddos
+    
+    ddos -> ddos: 36a. Advanced mitigation:\n    - Upstream filtering\n    - BGP blackholing\n    - Scrubbing centers\n    - Traffic redirection
+    
+    deactivate ddos
+    
+else Attack Contained
+    monitor -> monitor: 33b. Continue monitoring\n(attack under control)
+end
+
+deactivate security
+deactivate monitor
+
+== Post-Attack Analysis ==
+
+security -> security: 37. Post-incident review:\n- Attack vector analysis\n- Mitigation effectiveness\n- Response time evaluation\n- Lessons learned\n- Process improvements
+
+security -> monitor: 38. Update detection rules\n(improve future response)
+activate monitor
+
+monitor -> ddos: 39. Update mitigation rules\n(enhanced protection)
+activate ddos
+
+ddos -> ddos: 40. Rule optimization:\n- Threshold adjustments\n- Signature updates\n- Behavioral patterns\n- Machine learning training
+
+deactivate ddos
+deactivate monitor
+deactivate security
+
+== Auto-Scaling Response ==
+
+alt High Load Detected
+    monitor -> lb: 41a. Trigger auto-scaling\n(capacity increase needed)
+    activate monitor
+    activate lb
+    
+    lb -> lb: 42a. Scale-out decision:\n    - Launch new instances\n    - Update load balancing\n    - Health check integration\n    - Traffic redistribution
+    
+    lb -> web1: 43a. New server instance\n(additional capacity)
+    activate web1
+    
+    web1 --> lb: 44a. Server ready\n(health check passed)
+    deactivate web1
+    
+    lb -> monitor: 45a. Scaling completed\n(increased capacity)
+    deactivate lb
+    deactivate monitor
+    
+else Normal Load
+    monitor -> monitor: 41b. Maintain current capacity\n(no scaling needed)
+end
+
+note right of cdn
+  CDN Protection:
+  - Geographic distribution
+  - Edge caching
+  - Traffic absorption
+  - Basic filtering
+  - SSL termination
+end note
+
+note right of ddos
+  DDoS Mitigation:
+  - Volumetric protection
+  - Protocol validation
+  - Behavioral analysis
+  - Machine learning
+  - Real-time adaptation
+end note
+
+note left of waf
+  WAF Capabilities:
+  - Application-layer filtering
+  - OWASP Top 10 protection
+  - Custom rule sets
+  - Bot detection
+  - API security
+end note
+
+note left of monitor
+  Monitoring Metrics:
+  - Request rates
+  - Error rates
+  - Response times
+  - Resource utilization
+  - Attack patterns
+end note
+
+@enduml

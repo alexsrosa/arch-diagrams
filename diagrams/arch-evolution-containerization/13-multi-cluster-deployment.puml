@@ -1,0 +1,135 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+TITLE Multi-Cluster Deployment with Federation
+
+Person(user, "User", "Global users")
+
+System_Boundary(global_lb, "Global Load Balancer") {
+  Container(dns_lb, "DNS Load Balancer", "Route53/Cloud DNS", "Geographic traffic routing")
+  Container(global_cdn, "Global CDN", "CloudFront/CloudFlare", "Edge caching")
+}
+
+System_Boundary(region_us, "US-East Region") {
+  System_Boundary(cluster_us, "Primary Kubernetes Cluster (US-East)") {
+    System_Boundary(federation_us, "Federation Control Plane") {
+      Container(fed_controller_us, "Federation Controller", "Kubernetes Federation\nDeployment", "Cross-cluster orchestration")
+      Container(cluster_registry_us, "Cluster Registry", "Federation Component", "Cluster discovery")
+    }
+    
+    System_Boundary(services_us, "Services Namespace") {
+      Container(ingress_us, "Ingress Controller", "Nginx Ingress", "Regional traffic entry")
+      Container(user_svc_us, "User Service", "ClusterIP", "User management (Primary)")
+      Container(user_pods_us, "User Pods", "Java, Spring Boot\nStateless (5 replicas)", "Active user operations")
+      
+      Container(product_svc_us, "Product Service", "ClusterIP", "Product catalog (Primary)")
+      Container(product_pods_us, "Product Pods", "Go, Gin\nStateless (8 replicas)", "Active product management")
+      
+      Container(order_svc_us, "Order Service", "ClusterIP", "Order processing (Primary)")
+      Container(order_pods_us, "Order Pods", "Java, Spring Boot\nStateless (6 replicas)", "Active order processing")
+    }
+    
+    System_Boundary(storage_us, "Storage Namespace") {
+      ContainerDb(user_db_us, "User Database", "PostgreSQL\nStateful (Primary)", "Master database")
+      ContainerDb(product_db_us, "Product Database", "MongoDB\nStateful (Primary)", "Master product catalog")
+      ContainerDb(order_db_us, "Order Database", "PostgreSQL\nStateful (Primary)", "Master order data")
+    }
+  }
+}
+
+System_Boundary(region_eu, "EU-West Region") {
+  System_Boundary(cluster_eu, "Secondary Kubernetes Cluster (EU-West)") {
+    System_Boundary(federation_eu, "Federation Agent") {
+      Container(fed_agent_eu, "Federation Agent", "Kubernetes Federation\nDeployment", "Cluster coordination")
+    }
+    
+    System_Boundary(services_eu, "Services Namespace") {
+      Container(ingress_eu, "Ingress Controller", "Nginx Ingress", "Regional traffic entry")
+      Container(user_svc_eu, "User Service", "ClusterIP", "User management (Replica)")
+      Container(user_pods_eu, "User Pods", "Java, Spring Boot\nStateless (3 replicas)", "Read-only user operations")
+      
+      Container(product_svc_eu, "Product Service", "ClusterIP", "Product catalog (Replica)")
+      Container(product_pods_eu, "Product Pods", "Go, Gin\nStateless (5 replicas)", "Read-only product catalog")
+      
+      Container(order_svc_eu, "Order Service", "ClusterIP", "Order processing (Active)")
+      Container(order_pods_eu, "Order Pods", "Java, Spring Boot\nStateless (4 replicas)", "Regional order processing")
+    }
+    
+    System_Boundary(storage_eu, "Storage Namespace") {
+      ContainerDb(user_db_eu, "User Database", "PostgreSQL\nStateful (Read Replica)", "Read replica")
+      ContainerDb(product_db_eu, "Product Database", "MongoDB\nStateful (Read Replica)", "Read replica")
+      ContainerDb(order_db_eu, "Order Database", "PostgreSQL\nStateful (Regional)", "Regional order data")
+    }
+  }
+}
+
+System_Boundary(region_asia, "Asia-Pacific Region") {
+  System_Boundary(cluster_asia, "Tertiary Kubernetes Cluster (Asia-Pacific)") {
+    System_Boundary(federation_asia, "Federation Agent") {
+      Container(fed_agent_asia, "Federation Agent", "Kubernetes Federation\nDeployment", "Cluster coordination")
+    }
+    
+    System_Boundary(services_asia, "Services Namespace") {
+      Container(ingress_asia, "Ingress Controller", "Nginx Ingress", "Regional traffic entry")
+      Container(user_svc_asia, "User Service", "ClusterIP", "User management (Replica)")
+      Container(user_pods_asia, "User Pods", "Java, Spring Boot\nStateless (2 replicas)", "Read-only user operations")
+      
+      Container(product_svc_asia, "Product Service", "ClusterIP", "Product catalog (Replica)")
+      Container(product_pods_asia, "Product Pods", "Go, Gin\nStateless (3 replicas)", "Read-only product catalog")
+      
+      Container(order_svc_asia, "Order Service", "ClusterIP", "Order processing (Active)")
+      Container(order_pods_asia, "Order Pods", "Java, Spring Boot\nStateless (3 replicas)", "Regional order processing")
+    }
+    
+    System_Boundary(storage_asia, "Storage Namespace") {
+      ContainerDb(user_db_asia, "User Database", "PostgreSQL\nStateful (Read Replica)", "Read replica")
+      ContainerDb(product_db_asia, "Product Database", "MongoDB\nStateful (Read Replica)", "Read replica")
+      ContainerDb(order_db_asia, "Order Database", "PostgreSQL\nStateful (Regional)", "Regional order data")
+    }
+  }
+}
+
+System_Boundary(cross_cluster, "Cross-Cluster Services") {
+  Container(etcd_global, "Global etcd", "Distributed Key-Value Store", "Federation state")
+  Container(consul_connect, "Consul Connect", "Service Mesh\nMulti-cluster", "Cross-cluster service discovery")
+  Container(vault_global, "Global Vault", "Secret Management", "Cross-cluster secrets")
+}
+
+Rel(user, dns_lb, "Accesses via", "HTTP/HTTPS")
+Rel(dns_lb, global_cdn, "Routes traffic", "HTTP/HTTPS")
+Rel(global_cdn, ingress_us, "US traffic", "HTTP/HTTPS")
+Rel(global_cdn, ingress_eu, "EU traffic", "HTTP/HTTPS")
+Rel(global_cdn, ingress_asia, "Asia traffic", "HTTP/HTTPS")
+Rel(ingress_us, user_svc_us, "Routes requests", "HTTP")
+Rel(ingress_us, product_svc_us, "Routes requests", "HTTP")
+Rel(ingress_us, order_svc_us, "Routes requests", "HTTP")
+Rel(ingress_eu, user_svc_eu, "Routes requests", "HTTP")
+Rel(ingress_eu, product_svc_eu, "Routes requests", "HTTP")
+Rel(ingress_eu, order_svc_eu, "Routes requests", "HTTP")
+Rel(ingress_asia, user_svc_asia, "Routes requests", "HTTP")
+Rel(ingress_asia, product_svc_asia, "Routes requests", "HTTP")
+Rel(ingress_asia, order_svc_asia, "Routes requests", "HTTP")
+Rel(fed_controller_us, fed_agent_eu, "Cluster coordination", "gRPC")
+Rel(fed_controller_us, fed_agent_asia, "Cluster coordination", "gRPC")
+Rel(fed_controller_us, etcd_global, "Stores federation state", "etcd Protocol")
+Rel(cluster_registry_us, consul_connect, "Service discovery", "HTTP API")
+Rel(user_pods_us, user_db_us, "User data (write)", "JDBC/SQL")
+Rel(product_pods_us, product_db_us, "Product data (write)", "MongoDB Protocol")
+Rel(order_pods_us, order_db_us, "Order data (write)", "JDBC/SQL")
+Rel(user_pods_eu, user_db_eu, "User data (read)", "JDBC/SQL")
+Rel(product_pods_eu, product_db_eu, "Product data (read)", "MongoDB Protocol")
+Rel(order_pods_eu, order_db_eu, "Order data (write)", "JDBC/SQL")
+Rel(user_pods_asia, user_db_asia, "User data (read)", "JDBC/SQL")
+Rel(product_pods_asia, product_db_asia, "Product data (read)", "MongoDB Protocol")
+Rel(order_pods_asia, order_db_asia, "Order data (write)", "JDBC/SQL")
+Rel(user_db_us, user_db_eu, "Database replication", "PostgreSQL Streaming")
+Rel(user_db_us, user_db_asia, "Database replication", "PostgreSQL Streaming")
+Rel(product_db_us, product_db_eu, "Database replication", "MongoDB Replica Set")
+Rel(product_db_us, product_db_asia, "Database replication", "MongoDB Replica Set")
+Rel(order_pods_eu, order_pods_us, "Cross-region sync", "HTTP/gRPC")
+Rel(order_pods_asia, order_pods_us, "Cross-region sync", "HTTP/gRPC")
+Rel(user_pods_us, vault_global, "Retrieves secrets", "HTTP API")
+Rel(user_pods_eu, vault_global, "Retrieves secrets", "HTTP API")
+Rel(user_pods_asia, vault_global, "Retrieves secrets", "HTTP API")
+@enduml

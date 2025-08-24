@@ -1,0 +1,73 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+TITLE Event-Driven Architecture with Kafka
+
+Person(user, "User", "Uses a web browser")
+
+System_Boundary(k8s_cluster, "Kubernetes Cluster") {
+  System_Boundary(gateway_ns, "Gateway Namespace") {
+    Container(ingress, "Ingress Controller", "Nginx Ingress", "External traffic entry point")
+    Container(api_gateway, "API Gateway", "Kong\nStateless Pod", "Routes API requests")
+  }
+  
+  System_Boundary(services_ns, "Services Namespace") {
+    Container(user_svc, "User Service", "ClusterIP", "User management")
+    Container(user_pods, "User Pods", "Java, Spring Boot\nStateless Pods (2 replicas)", "Publishes: user.created, user.updated")
+    
+    Container(product_svc, "Product Service", "ClusterIP", "Product catalog")
+    Container(product_pods, "Product Pods", "Java, Spring Boot\nStateless Pods (3 replicas)", "Publishes: product.created, product.updated")
+    
+    Container(order_svc, "Order Service", "ClusterIP", "Order processing")
+    Container(order_pods, "Order Pods", "Java, Spring Boot\nStateless Pods (2 replicas)", "Publishes: order.created, order.completed")
+    
+    Container(notification_svc, "Notification Service", "ClusterIP", "Notification handling")
+    Container(notification_pods, "Notification Pods", "Java, Spring Boot\nStateless Pods (2 replicas)", "Consumes: order.*, user.created")
+    
+    Container(analytics_svc, "Analytics Service", "ClusterIP", "Data analytics")
+    Container(analytics_pods, "Analytics Pods", "Java, Spring Boot\nStateless Pods (1 replica)", "Consumes: product.*, order.*")
+  }
+  
+  System_Boundary(messaging_ns, "Messaging Namespace") {
+    Container(kafka_svc, "Kafka Service", "ClusterIP", "Kafka cluster endpoint")
+    Container(kafka_cluster, "Kafka Cluster", "Apache Kafka\nStatefulSet (3 brokers)", "Event streaming platform")
+    Container(zookeeper_svc, "Zookeeper Service", "ClusterIP", "Zookeeper ensemble")
+    Container(zookeeper_cluster, "Zookeeper Cluster", "Apache Zookeeper\nStatefulSet (3 nodes)", "Kafka coordination")
+    Container(kafka_pvc, "Kafka PVC", "Kubernetes PVC", "Kafka logs storage")
+    Container(zk_pvc, "Zookeeper PVC", "Kubernetes PVC", "Zookeeper data storage")
+  }
+  
+  System_Boundary(storage_ns, "Storage Namespace") {
+    Container(db_pv, "Database PV", "Kubernetes PV", "Database storage")
+    Container(db_pvc, "Database PVC", "Kubernetes PVC", "Database storage claim")
+    ContainerDb(db_pod, "Database Pod", "PostgreSQL\nStateful Pod", "Primary database")
+  }
+}
+
+Rel(user, ingress, "Accesses via", "HTTP/HTTPS")
+Rel(ingress, api_gateway, "Routes requests", "HTTP")
+Rel(api_gateway, user_svc, "User requests", "HTTP")
+Rel(api_gateway, product_svc, "Product requests", "HTTP")
+Rel(api_gateway, order_svc, "Order requests", "HTTP")
+Rel(user_svc, user_pods, "Load balances", "HTTP")
+Rel(product_svc, product_pods, "Load balances", "HTTP")
+Rel(order_svc, order_pods, "Load balances", "HTTP")
+Rel(notification_svc, notification_pods, "Load balances", "HTTP")
+Rel(analytics_svc, analytics_pods, "Load balances", "HTTP")
+Rel(user_pods, kafka_svc, "Publishes events", "Kafka Protocol")
+Rel(product_pods, kafka_svc, "Publishes events", "Kafka Protocol")
+Rel(order_pods, kafka_svc, "Publishes events", "Kafka Protocol")
+Rel(kafka_svc, notification_pods, "Consumes events", "Kafka Protocol")
+Rel(kafka_svc, analytics_pods, "Consumes events", "Kafka Protocol")
+Rel(kafka_svc, kafka_cluster, "Routes to brokers", "Kafka Protocol")
+Rel(kafka_cluster, zookeeper_svc, "Coordination", "Zookeeper Protocol")
+Rel(zookeeper_svc, zookeeper_cluster, "Routes to nodes", "Zookeeper Protocol")
+Rel(kafka_cluster, kafka_pvc, "Uses storage", "File System")
+Rel(zookeeper_cluster, zk_pvc, "Uses storage", "File System")
+Rel(user_pods, db_pod, "User data", "JDBC/SQL")
+Rel(product_pods, db_pod, "Product data", "JDBC/SQL")
+Rel(order_pods, db_pod, "Order data", "JDBC/SQL")
+Rel(db_pod, db_pvc, "Uses storage", "File System")
+Rel(db_pvc, db_pv, "Claims storage", "Storage API")
+@enduml

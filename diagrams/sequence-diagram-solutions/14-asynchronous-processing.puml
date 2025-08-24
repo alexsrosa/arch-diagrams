@@ -1,0 +1,27 @@
+@startuml
+participant "Order Service" as OrderService
+participant "Message Queue" as MQ
+participant "Worker Service" as Worker
+database "Orders Database" as DB
+
+OrderService -> MQ : publish ProcessOrder(orderId, payload)
+activate MQ
+MQ --> OrderService : ack
+deactivate MQ
+
+MQ -> Worker : deliver ProcessOrder(orderId, payload)
+activate Worker
+
+Worker -> DB : UPDATE orders\nSET status = 'PROCESSING'\nWHERE id = orderId
+activate DB
+DB --> Worker : OK
+deactivate DB
+
+Worker -> DB : UPDATE orders\nSET status = 'COMPLETED'\nWHERE id = orderId
+activate DB
+DB --> Worker : OK
+deactivate DB
+
+Worker -> MQ : ack message
+deactivate Worker
+@enduml

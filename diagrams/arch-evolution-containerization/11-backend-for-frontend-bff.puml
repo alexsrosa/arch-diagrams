@@ -1,0 +1,73 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+TITLE Backend-for-Frontend (BFF) Pattern
+
+Person(user, "User", "Uses a web browser")
+
+System_Boundary(k8s_cluster, "Kubernetes Cluster") {
+  System_Boundary(frontend_ns, "Frontend Namespace") {
+    Container(ingress, "Ingress Controller", "Nginx Ingress", "External traffic entry point")
+    Container(frontend_svc, "Frontend Service", "ClusterIP", "Frontend service")
+    Container(frontend_pods, "Frontend Pods", "React SPA\nNginx Pods (2 replicas)", "Single Page Application")
+  }
+  
+  System_Boundary(bff_ns, "BFF Namespace") {
+    Container(bff_svc, "BFF Service", "ClusterIP", "Backend-for-Frontend")
+    Container(bff_pods, "BFF Pods", "Node.js, Express\nStateless Pods (3 replicas)", "Aggregates and transforms API calls")
+  }
+  
+  System_Boundary(services_ns, "Services Namespace") {
+    Container(user_svc, "User Service", "ClusterIP", "User management")
+    Container(user_pods, "User Pods", "Java, Spring Boot\nStateless Pods (2 replicas)", "Handles user operations")
+    
+    Container(product_svc, "Product Service", "ClusterIP", "Product catalog")
+    Container(product_pods, "Product Pods", "Java, Spring Boot\nStateless Pods (3 replicas)", "Manages products")
+    
+    Container(order_svc, "Order Service", "ClusterIP", "Order processing")
+    Container(order_pods, "Order Pods", "Java, Spring Boot\nStateless Pods (2 replicas)", "Processes orders")
+    
+    Container(recommendation_svc, "Recommendation Service", "ClusterIP", "Product recommendations")
+    Container(recommendation_pods, "Recommendation Pods", "Python, FastAPI\nStateless Pods (2 replicas)", "ML-based recommendations")
+  }
+  
+  System_Boundary(storage_ns, "Storage Namespace") {
+    Container(user_db_pv, "User DB PV", "Kubernetes PV", "User database storage")
+    Container(user_db_pvc, "User DB PVC", "Kubernetes PVC", "User database claim")
+    ContainerDb(user_db, "User Database", "PostgreSQL\nStateful Pod", "User data")
+    
+    Container(product_db_pv, "Product DB PV", "Kubernetes PV", "Product database storage")
+    Container(product_db_pvc, "Product DB PVC", "Kubernetes PVC", "Product database claim")
+    ContainerDb(product_db, "Product Database", "PostgreSQL\nStateful Pod", "Product catalog")
+    
+    Container(order_db_pv, "Order DB PV", "Kubernetes PV", "Order database storage")
+    Container(order_db_pvc, "Order DB PVC", "Kubernetes PVC", "Order database claim")
+    ContainerDb(order_db, "Order Database", "PostgreSQL\nStateful Pod", "Order data")
+  }
+}
+
+Rel(user, ingress, "Accesses via", "HTTP/HTTPS")
+Rel(ingress, frontend_svc, "Routes to frontend", "HTTP")
+Rel(frontend_svc, frontend_pods, "Load balances", "HTTP")
+Rel(frontend_pods, bff_svc, "API calls", "HTTP/REST")
+Rel(bff_svc, bff_pods, "Load balances", "HTTP")
+Rel(bff_pods, user_svc, "User operations", "HTTP/REST")
+Rel(bff_pods, product_svc, "Product queries", "HTTP/REST")
+Rel(bff_pods, order_svc, "Order operations", "HTTP/REST")
+Rel(bff_pods, recommendation_svc, "Get recommendations", "HTTP/REST")
+Rel(user_svc, user_pods, "Load balances", "HTTP")
+Rel(product_svc, product_pods, "Load balances", "HTTP")
+Rel(order_svc, order_pods, "Load balances", "HTTP")
+Rel(recommendation_svc, recommendation_pods, "Load balances", "HTTP")
+Rel(user_pods, user_db, "User data", "JDBC/SQL")
+Rel(product_pods, product_db, "Product data", "JDBC/SQL")
+Rel(order_pods, order_db, "Order data", "JDBC/SQL")
+Rel(recommendation_pods, product_db, "Product data (read-only)", "JDBC/SQL")
+Rel(user_db, user_db_pvc, "Uses storage", "File System")
+Rel(user_db_pvc, user_db_pv, "Claims storage", "Storage API")
+Rel(product_db, product_db_pvc, "Uses storage", "File System")
+Rel(product_db_pvc, product_db_pv, "Claims storage", "Storage API")
+Rel(order_db, order_db_pvc, "Uses storage", "File System")
+Rel(order_db_pvc, order_db_pv, "Claims storage", "Storage API")
+@enduml

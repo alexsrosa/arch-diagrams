@@ -1,0 +1,87 @@
+@startuml
+!theme plain
+title Token-Based Authentication Flow
+
+actor "Client" as client
+participant "Authentication Server" as auth
+participant "API Server" as api
+database "User Database" as db
+database "Token Store" as tokens
+
+note over client, tokens
+  Token-based authentication where client requests
+  a token and uses it for subsequent API calls
+end note
+
+== Token Request Phase ==
+
+client -> auth: 1. Login request\n(username, password)
+activate auth
+
+auth -> db: 2. Validate credentials
+activate db
+db --> auth: 3. User validated
+deactivate db
+
+auth -> auth: 4. Generate access token\n(JWT or opaque token)
+
+auth -> tokens: 5. Store token metadata\n(expiration, user_id, scope)
+activate tokens
+tokens --> auth: 6. Token stored
+deactivate tokens
+
+auth --> client: 7. Return access token\n+ refresh token (optional)
+deactivate auth
+
+== API Access Phase ==
+
+client -> api: 8. API request\n(Authorization: Bearer <token>)
+activate api
+
+api -> tokens: 9. Validate token\n(check expiration, scope)
+activate tokens
+tokens --> api: 10. Token valid + user info
+deactivate tokens
+
+api -> api: 11. Process request\n(with user context)
+
+api --> client: 12. API response\n(requested data)
+deactivate api
+
+== Token Refresh Phase ==
+
+client -> auth: 13. Refresh token request\n(refresh_token)
+activate auth
+
+auth -> tokens: 14. Validate refresh token
+activate tokens
+tokens --> auth: 15. Refresh token valid
+deactivate tokens
+
+auth -> auth: 16. Generate new access token
+
+auth -> tokens: 17. Update token store
+activate tokens
+tokens --> auth: 18. Updated
+deactivate tokens
+
+auth --> client: 19. New access token
+deactivate auth
+
+note right of auth
+  Token security:
+  - Short-lived access tokens (15-60 min)
+  - Longer-lived refresh tokens (days/weeks)
+  - Secure token storage
+  - Token revocation capability
+end note
+
+note right of api
+  API benefits:
+  - Stateless authentication
+  - Scalable across services
+  - Fine-grained permissions
+  - Easy token validation
+end note
+
+@enduml

@@ -1,0 +1,20 @@
+@startuml
+participant "Order Service" as OrderService
+participant "Kafka Broker"   as Kafka
+participant "Notification Service" as NotificationService
+participant "Email Service"  as EmailService
+
+OrderService -> Kafka : publish OrderCreated(orderId, userId, ...)
+activate Kafka
+Kafka --> OrderService : ack
+deactivate Kafka
+
+Kafka -> NotificationService : OrderCreated(orderId, ...)
+activate NotificationService
+NotificationService -> EmailService : sendEmail(to, subject, body)
+activate EmailService
+EmailService --> NotificationService : emailSentConfirmation
+deactivate EmailService
+NotificationService --> Kafka : commit offset
+deactivate NotificationService
+@enduml

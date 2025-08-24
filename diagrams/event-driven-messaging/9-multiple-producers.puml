@@ -1,0 +1,69 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Multiple Producers Pattern
+
+!define RECTANGLE class
+
+RECTANGLE "Producer A" as ProducerA {
+  + produceOrderEvents()
+  + sendToQueue()
+}
+
+RECTANGLE "Producer B" as ProducerB {
+  + produceInventoryEvents()
+  + sendToQueue()
+}
+
+RECTANGLE "Producer C" as ProducerC {
+  + produceUserEvents()
+  + sendToQueue()
+}
+
+RECTANGLE "Common Queue" as CommonQueue {
+  + enqueue(message)
+  + dequeue()
+  + handleConcurrency()
+}
+
+RECTANGLE "Consumer 1" as Consumer1 {
+  + pullFromQueue()
+  + processMessage()
+}
+
+RECTANGLE "Consumer 2" as Consumer2 {
+  + pullFromQueue()
+  + processMessage()
+}
+
+RECTANGLE "Consumer 3" as Consumer3 {
+  + pullFromQueue()
+  + processMessage()
+}
+
+ProducerA --> CommonQueue : "Send Order Events\n[Concurrent]"
+ProducerB --> CommonQueue : "Send Inventory Events\n[Concurrent]"
+ProducerC --> CommonQueue : "Send User Events\n[Concurrent]"
+CommonQueue --> Consumer1 : "Pull Mixed Messages"
+CommonQueue --> Consumer2 : "Pull Mixed Messages"
+CommonQueue --> Consumer3 : "Pull Mixed Messages"
+
+note top of ProducerA
+  Multiple producers send
+  different types of events
+  to the same queue
+end note
+
+note right of CommonQueue
+  Common queue handles
+  messages from multiple
+  sources concurrently
+end note
+
+note bottom of Consumer1
+  Consumers process mixed
+  message types from
+  different producers
+end note
+
+@enduml

@@ -1,0 +1,85 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Event Sourcing Pattern
+
+!define RECTANGLE class
+
+RECTANGLE "Command Handler" as CommandHandler {
+  + handleCommand()
+  + validateCommand()
+  + generateEvents()
+}
+
+RECTANGLE "Event Store" as EventStore {
+  + appendEvent()
+  + getEvents()
+  + eventStream: []
+  + immutableLog: true
+}
+
+RECTANGLE "Event Stream" as EventStream {
+  + OrderCreated (v1)
+  + InventoryReserved (v2)
+  + PaymentProcessed (v3)
+  + OrderShipped (v4)
+}
+
+RECTANGLE "Projection Service A" as ProjectionA {
+  + replayEvents()
+  + buildOrderView()
+  + currentState: ORDER_SHIPPED
+}
+
+RECTANGLE "Projection Service B" as ProjectionB {
+  + replayEvents()
+  + buildInventoryView()
+  + currentState: INVENTORY_UPDATED
+}
+
+RECTANGLE "Read Model A" as ReadModelA {
+  + orderSummary
+  + orderHistory
+  + optimizedForQueries
+}
+
+RECTANGLE "Read Model B" as ReadModelB {
+  + inventoryLevels
+  + reservations
+  + optimizedForReports
+}
+
+CommandHandler --> EventStore : "Append Events\n[Immutable Log]"
+EventStore --> EventStream : "Store\n[Sequential Events]"
+EventStream --> ProjectionA : "Replay Events\n[Rebuild State]"
+EventStream --> ProjectionB : "Replay Events\n[Rebuild State]"
+ProjectionA --> ReadModelA : "Update\n[Order View]"
+ProjectionB --> ReadModelB : "Update\n[Inventory View]"
+
+note right of CommandHandler
+  Commands generate domain
+  events that represent
+  state changes in the system
+end note
+
+note top of EventStore
+  Event store is the single
+  source of truth, storing
+  all events in chronological
+  order as immutable log
+end note
+
+note left of ProjectionA
+  Projection services replay
+  events to rebuild current
+  state and create optimized
+  read models for queries
+end note
+
+note bottom of ReadModelA
+  Read models are derived
+  from events and optimized
+  for specific query patterns
+end note
+
+@enduml

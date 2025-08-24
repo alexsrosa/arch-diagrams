@@ -1,0 +1,42 @@
+@startuml
+actor Frontend
+participant "Order Service"          as OrderService
+participant "Inventory Service"      as InventoryService
+participant "Payment Service"        as PaymentService
+participant "Shipping Service"       as ShippingService
+participant "Monitoring System"      as Monitoring
+
+Frontend -> OrderService : POST /orders { order details }
+activate OrderService
+
+OrderService -> Monitoring : emit metric(order_received)
+OrderService -> InventoryService : checkStock(productId, qty)
+activate InventoryService
+
+InventoryService -> Monitoring : emit metric(inventory_check_start)
+InventoryService --> OrderService : { available: true }
+InventoryService -> Monitoring : emit metric(inventory_check_end)
+deactivate InventoryService
+
+OrderService -> Monitoring : emit metric(stock_verified)
+OrderService -> PaymentService : processPayment(orderId, paymentInfo)
+activate PaymentService
+
+PaymentService -> Monitoring : emit metric(payment_start)
+PaymentService --> OrderService : { status: success, paymentId }
+PaymentService -> Monitoring : emit metric(payment_end)
+deactivate PaymentService
+
+OrderService -> Monitoring : emit metric(payment_processed)
+OrderService -> ShippingService : scheduleShipping(orderId, address)
+activate ShippingService
+
+ShippingService -> Monitoring : emit metric(shipping_start)
+ShippingService --> OrderService : { status: scheduled, shipmentId }
+ShippingService -> Monitoring : emit metric(shipping_end)
+deactivate ShippingService
+
+OrderService -> Monitoring : emit metric(order_completed)
+OrderService --> Frontend : 201 Created { orderId }
+deactivate OrderService
+@enduml

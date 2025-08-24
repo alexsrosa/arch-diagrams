@@ -1,0 +1,358 @@
+@startuml
+!theme plain
+title Secure API Key Management Lifecycle
+
+actor "Developer" as dev
+actor "API Consumer" as consumer
+actor "Security Admin" as security
+participant "Developer Portal" as portal
+participant "API Key Manager" as keymgr
+participant "Key Vault/HSM" as vault
+participant "API Gateway" as gateway
+participant "Rate Limiter" as ratelimit
+participant "Audit Logger" as audit
+participant "Monitoring System" as monitor
+participant "Notification Service" as notify
+participant "Backend Service" as backend
+participant "Analytics Engine" as analytics
+
+note over dev, analytics
+  Secure API key lifecycle management ensures
+  proper authentication, authorization, and monitoring
+end note
+
+== API Key Registration and Generation ==
+
+dev -> portal: 1. Request API access\n(application registration)
+activate portal
+
+portal -> portal: 2. Application validation:\n- Developer verification\n- Use case review\n- Terms acceptance\n- Rate limit assignment\n- Scope definition
+
+portal -> keymgr: 3. Generate API key\n(authenticated request)
+activate keymgr
+
+keymgr -> keymgr: 4. Key generation process:\n- Cryptographically secure random\n- Unique identifier creation\n- Metadata association\n- Expiration date setting\n- Scope assignment
+
+keymgr -> vault: 5. Store key securely\n(encrypted storage)
+activate vault
+
+vault -> vault: 6. Secure storage:\n- Hardware security module\n- Encryption at rest\n- Access control\n- Audit logging\n- Backup procedures
+
+vault --> keymgr: 7. Storage confirmation\n(key stored)
+deactivate vault
+
+keymgr -> audit: 8. Log key creation\n(audit trail)
+activate audit
+
+audit -> audit: 9. Audit record:\n- Key ID\n- Developer ID\n- Timestamp\n- Application details\n- Assigned permissions
+
+deactivate audit
+
+keymgr --> portal: 10. Key generated\n(with metadata)
+deactivate keymgr
+
+portal --> dev: 11. API key delivery\n(secure channel)
+deactivate portal
+
+== API Key Usage and Validation ==
+
+consumer -> gateway: 12. API request\n(with API key)
+activate gateway
+
+gateway -> gateway: 13. Request preprocessing:\n- Header extraction\n- Key format validation\n- Rate limit check\n- Request sanitization\n- Timestamp validation
+
+gateway -> keymgr: 14. Validate API key\n(authentication)
+activate keymgr
+
+keymgr -> vault: 15. Retrieve key data\n(secure lookup)
+activate vault
+
+vault --> keymgr: 16. Key information\n(encrypted data)
+deactivate vault
+
+keymgr -> keymgr: 17. Key validation:\n- Key existence check\n- Expiration validation\n- Status verification\n- Scope matching\n- Rate limit lookup
+
+alt Valid API Key
+    keymgr --> gateway: 18a. Validation success\n(key metadata)
+    deactivate keymgr
+    
+    gateway -> ratelimit: 19a. Check rate limits\n(usage validation)
+    activate ratelimit
+    
+    ratelimit -> ratelimit: 20a. Rate limit check:\n    - Current usage count\n    - Time window validation\n    - Quota verification\n    - Burst limit check\n    - Fair usage policy
+    
+    alt Within Rate Limits
+        ratelimit --> gateway: 21a1. Rate limit OK\n(proceed with request)
+        deactivate ratelimit
+        
+        gateway -> backend: 22a1. Forward request\n(authorized)
+        activate backend
+        
+        backend -> backend: 23a1. Process request:\n        - Business logic\n        - Data retrieval\n        - Response preparation\n        - Error handling
+        
+        backend --> gateway: 24a1. API response\n(processed data)
+        deactivate backend
+        
+        gateway -> audit: 25a1. Log successful request\n(usage tracking)
+        activate audit
+        
+        audit -> audit: 26a1. Usage logging:\n        - API key ID\n        - Endpoint accessed\n        - Response status\n        - Processing time\n        - Data volume
+        
+        deactivate audit
+        
+        gateway --> consumer: 27a1. API response\n(successful)
+        
+    else Rate Limit Exceeded
+        ratelimit --> gateway: 21a2. Rate limit exceeded\n(429 Too Many Requests)
+        deactivate ratelimit
+        
+        gateway -> audit: 22a2. Log rate limit violation\n(security event)
+        activate audit
+        
+        audit -> monitor: 23a2. Alert rate limiting\n(potential abuse)
+        activate monitor
+        
+        monitor -> notify: 24a2. Notify security team\n(suspicious activity)
+        activate notify
+        
+        notify -> security: 25a2. Security alert\n(rate limit abuse)
+        activate security
+        
+        security -> security: 26a2. Investigate usage:\n        - Pattern analysis\n        - Abuse detection\n        - Account review\n        - Mitigation planning
+        
+        deactivate security
+        deactivate notify
+        deactivate monitor
+        deactivate audit
+        
+        gateway --> consumer: 27a2. Rate limit error\n(429 response)
+    end
+    
+else Invalid API Key
+    keymgr --> gateway: 18b. Validation failed\n(unauthorized)
+    deactivate keymgr
+    
+    gateway -> audit: 19b. Log invalid key usage\n(security event)
+    activate audit
+    
+    audit -> monitor: 20b. Security alert\n(invalid key attempt)
+    activate monitor
+    
+    monitor -> monitor: 21b. Threat analysis:\n    - Attack pattern detection\n    - Source IP analysis\n    - Frequency assessment\n    - Risk evaluation
+    
+    alt Suspicious Activity
+        monitor -> notify: 22b1. Security notification\n(potential attack)
+        activate notify
+        
+        notify -> security: 23b1. Security incident\n(investigation required)
+        activate security
+        
+        security -> gateway: 24b1. Block suspicious IP\n(temporary ban)
+        
+        gateway -> gateway: 25b1. IP blocking:\n        - Blacklist update\n        - Firewall rules\n        - Geographic blocking\n        - Temporary restrictions
+        
+        deactivate security
+        deactivate notify
+    end
+    
+    deactivate monitor
+    deactivate audit
+    
+    gateway --> consumer: 26b. Authentication error\n(401 Unauthorized)
+end
+
+deactivate gateway
+
+== API Key Rotation ==
+
+keymgr -> keymgr: 28. Scheduled rotation check\n(automated process)
+activate keymgr
+
+keymgr -> vault: 29. Query expiring keys\n(rotation candidates)
+activate vault
+
+vault --> keymgr: 30. Expiring keys list\n(rotation needed)
+deactivate vault
+
+alt Keys Need Rotation
+    keymgr -> notify: 31a. Rotation notification\n(advance warning)
+    activate notify
+    
+    notify -> dev: 32a. Key rotation notice\n(30-day warning)
+    activate dev
+    
+    dev -> portal: 33a. Request key rotation\n(manual trigger)
+    activate portal
+    
+    portal -> keymgr: 34a. Initiate rotation\n(authorized request)
+    
+    keymgr -> keymgr: 35a. Generate new key:\n    - New cryptographic key\n    - Updated metadata\n    - Extended expiration\n    - Scope preservation\n    - Version tracking
+    
+    keymgr -> vault: 36a. Store new key\n(secure storage)
+    activate vault
+    
+    vault --> keymgr: 37a. Storage confirmed\n(new key stored)
+    deactivate vault
+    
+    keymgr -> keymgr: 38a. Overlap period:\n    - Both keys valid\n    - Gradual transition\n    - Usage monitoring\n    - Migration tracking
+    
+    keymgr -> audit: 39a. Log key rotation\n(audit trail)
+    activate audit
+    
+    audit -> audit: 40a. Rotation record:\n    - Old key ID\n    - New key ID\n    - Rotation timestamp\n    - Developer notification\n    - Transition period
+    
+    deactivate audit
+    
+    keymgr --> portal: 41a. New key generated\n(rotation complete)
+    
+    portal --> dev: 42a. New API key\n(secure delivery)
+    deactivate portal
+    deactivate dev
+    
+    keymgr -> keymgr: 43a. Schedule old key revocation\n(grace period)
+    
+    deactivate notify
+    
+else No Rotation Needed
+    keymgr -> keymgr: 31b. Continue monitoring\n(next check cycle)
+end
+
+deactivate keymgr
+
+== API Key Revocation ==
+
+alt Security Incident
+    security -> keymgr: 44a. Emergency revocation\n(security breach)
+    activate security
+    activate keymgr
+    
+    keymgr -> vault: 45a. Revoke key immediately\n(emergency action)
+    activate vault
+    
+    vault -> vault: 46a. Immediate revocation:\n    - Key status update\n    - Access termination\n    - Cache invalidation\n    - Propagation to gateways
+    
+    vault --> keymgr: 47a. Revocation confirmed\n(key disabled)
+    deactivate vault
+    
+    keymgr -> gateway: 48a. Invalidate key cache\n(immediate effect)
+    activate gateway
+    
+    gateway -> gateway: 49a. Cache invalidation:\n    - Remove from cache\n    - Update validation rules\n    - Block future requests\n    - Log revocation event
+    
+    deactivate gateway
+    
+    keymgr -> notify: 50a. Revocation notification\n(security alert)
+    activate notify
+    
+    notify -> dev: 51a. Key revoked notice\n(immediate notification)
+    activate dev
+    
+    dev -> dev: 52a. Update applications:\n    - Remove old key\n    - Request new key\n    - Update configurations\n    - Test connectivity
+    
+    deactivate dev
+    deactivate notify
+    deactivate security
+    
+else Normal Expiration
+    keymgr -> keymgr: 44b. Natural expiration\n(scheduled revocation)
+    activate keymgr
+    
+    keymgr -> vault: 45b. Mark key expired\n(status update)
+    activate vault
+    
+    vault --> keymgr: 46b. Expiration recorded\n(key inactive)
+    deactivate vault
+end
+
+keymgr -> audit: 53. Log key revocation\n(audit record)
+activate audit
+
+audit -> audit: 54. Revocation logging:\n- Key ID\n- Revocation reason\n- Timestamp\n- Initiating user\n- Impact assessment
+
+deactivate audit
+deactivate keymgr
+
+== Analytics and Monitoring ==
+
+analytics -> audit: 55. Collect usage data\n(periodic analysis)
+activate analytics
+activate audit
+
+audit --> analytics: 56. Usage statistics\n(aggregated data)
+deactivate audit
+
+analytics -> analytics: 57. Usage analysis:\n- API call patterns\n- Error rate trends\n- Performance metrics\n- Security incidents\n- Compliance status
+
+analytics -> monitor: 58. Generate insights\n(monitoring data)
+activate monitor
+
+monitor -> monitor: 59. Monitoring dashboard:\n- Active keys count\n- Usage statistics\n- Error rates\n- Security events\n- Performance metrics
+
+alt Anomaly Detected
+    monitor -> notify: 60a. Anomaly alert\n(unusual patterns)
+    activate notify
+    
+    notify -> security: 61a. Investigation required\n(security review)
+    activate security
+    
+    security -> security: 62a. Anomaly investigation:\n    - Pattern analysis\n    - Threat assessment\n    - Risk evaluation\n    - Response planning
+    
+    deactivate security
+    deactivate notify
+end
+
+deactivate monitor
+deactivate analytics
+
+== Compliance and Reporting ==
+
+security -> audit: 63. Generate compliance report\n(regulatory requirements)
+activate security
+activate audit
+
+audit -> audit: 64. Compliance reporting:\n- Key lifecycle events\n- Security incidents\n- Access patterns\n- Policy compliance\n- Audit trail integrity
+
+audit --> security: 65. Compliance data\n(regulatory report)
+deactivate audit
+
+security -> security: 66. Compliance validation:\n- Regulatory alignment\n- Policy adherence\n- Security standards\n- Best practices\n- Risk assessment
+
+deactivate security
+
+note right of keymgr
+  Key Management Features:
+  - Cryptographically secure generation
+  - Automated rotation
+  - Granular permissions
+  - Usage analytics
+  - Emergency revocation
+end note
+
+note right of vault
+  Security Controls:
+  - Hardware Security Module
+  - Encryption at rest
+  - Access logging
+  - Backup and recovery
+  - Compliance standards
+end note
+
+note left of gateway
+  Gateway Capabilities:
+  - Real-time validation
+  - Rate limiting
+  - Request routing
+  - Response caching
+  - Security filtering
+end note
+
+note left of audit
+  Audit Requirements:
+  - Complete audit trail
+  - Tamper-proof logging
+  - Regulatory compliance
+  - Forensic analysis
+  - Long-term retention
+end note
+
+@enduml

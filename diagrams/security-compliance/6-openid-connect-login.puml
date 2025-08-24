@@ -1,0 +1,122 @@
+@startuml
+!theme plain
+title OpenID Connect (OIDC) Login Flow
+
+actor "User" as user
+participant "Client Application\n(Relying Party)" as client
+participant "Identity Provider\n(OIDC Provider)" as idp
+participant "UserInfo Endpoint" as userinfo
+
+note over user, userinfo
+  OpenID Connect extends OAuth2 to provide
+  identity layer with standardized user information
+end note
+
+== Authentication Request ==
+
+user -> client: 1. User clicks "Login with Google/Auth0"
+activate client
+
+client --> user: 2. Redirect to Identity Provider\n(client_id, redirect_uri, scope=openid profile email)
+deactivate client
+
+user -> idp: 3. Authentication request\n(GET /authorize?scope=openid...)
+activate idp
+
+alt User not authenticated
+    idp --> user: 4a. Show login page
+    user -> idp: 5a. User credentials\n(username, password)
+    idp -> idp: 6a. Validate credentials
+else User already authenticated
+    idp -> idp: 4b. Check existing session
+end
+
+idp --> user: 7. Show consent page\n("Share profile info with App X?")
+
+user -> idp: 8. User grants consent
+
+== Authorization Response ==
+
+idp --> user: 9. Redirect with authorization code\n(code=XYZ789&state=abc)
+deactivate idp
+
+user -> client: 10. Authorization code\n(via callback URL)
+activate client
+
+== Token Exchange ==
+
+client -> idp: 11. Exchange code for tokens\n(POST /token)\n(code, client_id, client_secret)
+activate idp
+
+idp -> idp: 12. Validate request:\n- Authorization code\n- Client credentials
+
+idp --> client: 13. Token response\n(access_token, id_token, refresh_token)
+deactivate idp
+
+== ID Token Validation ==
+
+client -> client: 14. Validate ID Token:\n- Signature verification (JWT)\n- Issuer validation\n- Audience validation\n- Expiration check
+
+client -> client: 15. Extract user claims\n(sub, name, email, etc.)
+
+== UserInfo Request (Optional) ==
+
+client -> userinfo: 16. Get additional user info\n(Authorization: Bearer <access_token>)
+activate userinfo
+
+userinfo --> client: 17. User profile data\n(JSON with additional claims)
+deactivate userinfo
+
+== Session Creation ==
+
+client -> client: 18. Create local session\n(store user info, session ID)
+
+client --> user: 19. Login successful\n(redirect to application)
+deactivate client
+
+== Logout Flow ==
+
+user -> client: 20. User clicks logout
+activate client
+
+client -> client: 21. Clear local session
+
+client --> user: 22. Redirect to IDP logout\n(end_session_endpoint)
+deactivate client
+
+user -> idp: 23. Logout request
+activate idp
+
+idp -> idp: 24. Clear IDP session
+
+idp --> user: 25. Logout confirmation\n(redirect back to client)
+deactivate idp
+
+note right of idp
+  OIDC Features:
+  - Standardized identity claims
+  - JWT-based ID tokens
+  - UserInfo endpoint for profile data
+  - Discovery endpoint for configuration
+  - Session management
+end note
+
+note right of client
+  ID Token Claims:
+  - sub (subject identifier)
+  - iss (issuer)
+  - aud (audience)
+  - exp (expiration)
+  - iat (issued at)
+  - name, email, picture, etc.
+end note
+
+note left of user
+  User Benefits:
+  - Single Sign-On (SSO)
+  - No password management
+  - Consistent login experience
+  - Centralized identity management
+end note
+
+@enduml

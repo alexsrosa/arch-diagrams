@@ -1,0 +1,30 @@
+@startuml
+actor Frontend
+participant "API Gateway" as APIGW
+participant "Auth Service" as AuthService
+participant "User Service" as UserService
+participant "Order Service" as OrderService
+
+Frontend -> APIGW : GET /api/dashboard\nAuthorization: Bearer <token>
+activate APIGW
+
+APIGW -> AuthService : ValidateToken(<token>)
+activate AuthService
+AuthService --> APIGW : 200 OK (token valid)
+deactivate AuthService
+
+alt Request Users
+    APIGW -> UserService : GET /api/users/{id}
+    activate UserService
+    UserService --> APIGW : 200 OK {user data}
+    deactivate UserService
+else Request Orders
+    APIGW -> OrderService : GET /api/orders?userId={id}
+    activate OrderService
+    OrderService --> APIGW : 200 OK {order list}
+    deactivate OrderService
+end
+
+APIGW --> Frontend : 200 OK {aggregated data}
+deactivate APIGW
+@enduml

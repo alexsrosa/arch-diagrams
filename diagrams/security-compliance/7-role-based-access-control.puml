@@ -1,0 +1,122 @@
+@startuml
+!theme plain
+title Role-Based Access Control (RBAC) System
+
+actor "User" as user
+participant "Application" as app
+participant "Authorization Service" as authz
+participant "RBAC Engine" as rbac
+database "User Database" as userdb
+database "Role Database" as roledb
+database "Permission Database" as permdb
+
+note over user, permdb
+  RBAC system where users are assigned roles,
+  and roles have specific permissions for resources
+end note
+
+== User Authentication ==
+
+user -> app: 1. Login request\n(username, password)
+activate app
+
+app -> authz: 2. Authenticate user
+activate authz
+
+authz -> userdb: 3. Validate credentials
+activate userdb
+userdb --> authz: 4. User authenticated\n(user_id, active roles)
+deactivate userdb
+
+authz --> app: 5. Authentication successful\n(user_id, session_token)
+deactivate authz
+
+== Resource Access Request ==
+
+user -> app: 6. Request access to resource\n(e.g., "view financial reports")
+
+app -> authz: 7. Authorization check\n(user_id, resource, action)
+activate authz
+
+== RBAC Permission Check ==
+
+authz -> rbac: 8. Check user permissions\n(user_id, resource, action)
+activate rbac
+
+rbac -> userdb: 9. Get user roles\n(user_id)
+activate userdb
+userdb --> rbac: 10. User roles\n(["manager", "finance_user"])
+deactivate userdb
+
+rbac -> roledb: 11. Get role permissions\n(role_names)
+activate roledb
+roledb --> rbac: 12. Role definitions\n(role hierarchy, inherited permissions)
+deactivate roledb
+
+rbac -> permdb: 13. Check specific permissions\n(roles, resource, action)
+activate permdb
+permdb --> rbac: 14. Permission result\n(allowed/denied + reason)
+deactivate permdb
+
+rbac -> rbac: 15. Apply RBAC rules:\n- Role hierarchy\n- Permission inheritance\n- Constraints (time, location)
+
+alt Permission Granted
+    rbac --> authz: 16a. Access ALLOWED\n(permission details)
+    
+    authz --> app: 17a. Authorization successful\n(access token, scope)
+    
+    app -> app: 18a. Execute requested action
+    
+    app --> user: 19a. Resource data\n(financial reports)
+    
+else Permission Denied
+    rbac --> authz: 16b. Access DENIED\n(insufficient privileges)
+    
+    authz --> app: 17b. Authorization failed\n(403 Forbidden)
+    
+    app --> user: 19b. Access denied message\n("You don't have permission")
+end
+
+deactivate rbac
+deactivate authz
+deactivate app
+
+== Audit Logging ==
+
+app -> authz: 20. Log access attempt\n(user, resource, result, timestamp)
+activate authz
+
+authz -> permdb: 21. Store audit log
+activate permdb
+permdb --> authz: 22. Log stored
+deactivate permdb
+deactivate authz
+
+note right of rbac
+  RBAC Components:
+  - Users: Individual accounts
+  - Roles: Job functions (Admin, Manager, User)
+  - Permissions: Specific actions on resources
+  - Role Hierarchy: Inheritance relationships
+  - Constraints: Time, location, conditions
+end note
+
+note right of roledb
+  Example Roles:
+  - Admin: Full system access
+  - Manager: Team data + reports
+  - Finance_User: Financial data read
+  - HR_User: Employee data access
+  - Guest: Public data only
+end note
+
+note left of user
+  RBAC Benefits:
+  - Principle of least privilege
+  - Simplified permission management
+  - Role-based delegation
+  - Compliance with regulations
+  - Scalable access control
+end note
+
+@enduml

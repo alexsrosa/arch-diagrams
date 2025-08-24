@@ -1,0 +1,80 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Message Filter Pattern
+
+!define RECTANGLE class
+
+RECTANGLE Producer {
+  + produceMessage()
+  + setMessageType()
+  + publishToTopic()
+}
+
+RECTANGLE Topic {
+  + publish(message)
+  + broadcast()
+  + messageTypes: [ORDER, INVENTORY, USER]
+}
+
+RECTANGLE "Subscriber A" as SubscriberA {
+  + messageFilter: "ORDER"
+  + onMessage()
+  + processOrderMessages()
+}
+
+RECTANGLE "Subscriber B" as SubscriberB {
+  + messageFilter: "INVENTORY"
+  + onMessage()
+  + processInventoryMessages()
+}
+
+RECTANGLE "Subscriber C" as SubscriberC {
+  + messageFilter: "USER"
+  + onMessage()
+  + processUserMessages()
+}
+
+RECTANGLE "Message Filter A" as FilterA {
+  + filterCriteria: "type=ORDER"
+  + evaluate(message)
+}
+
+RECTANGLE "Message Filter B" as FilterB {
+  + filterCriteria: "type=INVENTORY"
+  + evaluate(message)
+}
+
+RECTANGLE "Message Filter C" as FilterC {
+  + filterCriteria: "type=USER"
+  + evaluate(message)
+}
+
+Producer --> Topic : "Publish All Messages\n[Mixed Types]"
+Topic --> FilterA : "All Messages"
+Topic --> FilterB : "All Messages"
+Topic --> FilterC : "All Messages"
+FilterA --> SubscriberA : "ORDER Messages Only\n[Filtered]"
+FilterB --> SubscriberB : "INVENTORY Messages Only\n[Filtered]"
+FilterC --> SubscriberC : "USER Messages Only\n[Filtered]"
+
+note right of Producer
+  Producer publishes messages
+  with different types and
+  metadata for filtering
+end note
+
+note top of Topic
+  Topic broadcasts all messages
+  to subscribers, but filters
+  determine what gets processed
+end note
+
+note bottom of FilterA
+  Each filter evaluates
+  message criteria and only
+  passes matching messages
+  to its subscriber
+end note
+
+@enduml

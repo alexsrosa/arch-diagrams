@@ -1,0 +1,156 @@
+@startuml
+!theme plain
+title Data Encryption at Rest Process
+
+actor "User" as user
+participant "Application" as app
+participant "Encryption Service" as crypto
+participant "Key Management Service" as kms
+database "Encrypted Database" as db
+participant "Backup Service" as backup
+
+note over user, backup
+  Data encryption at rest ensures sensitive data
+  is protected even if storage media is compromised
+end note
+
+== Data Write Operation ==
+
+user -> app: 1. Submit sensitive data\n(PII, financial info, passwords)
+activate app
+
+app -> app: 2. Validate and sanitize\ninput data
+
+app -> kms: 3. Request encryption key\n(key_id, context)
+activate kms
+
+kms -> kms: 4. Retrieve/generate key\n(AES-256 encryption key)
+
+kms --> app: 5. Return encryption key\n(encrypted with master key)
+deactivate kms
+
+app -> crypto: 6. Encrypt sensitive data\n(plaintext + encryption key)
+activate crypto
+
+crypto -> crypto: 7. Apply encryption:\n- AES-256-GCM\n- Generate IV/nonce\n- Add authentication tag
+
+crypto --> app: 8. Return encrypted data\n(ciphertext + metadata)
+deactivate crypto
+
+app -> db: 9. Store encrypted data\n(ciphertext, key_id, IV)
+activate db
+db --> app: 10. Data stored successfully
+deactivate db
+
+app --> user: 11. Operation completed\n(confirmation message)
+deactivate app
+
+== Data Read Operation ==
+
+user -> app: 12. Request sensitive data\n(user_id, data_type)
+activate app
+
+app -> db: 13. Query encrypted data\n(WHERE user_id = ?)
+activate db
+db --> app: 14. Return encrypted data\n(ciphertext, key_id, IV)
+deactivate db
+
+app -> kms: 15. Request decryption key\n(key_id, context)
+activate kms
+
+kms -> kms: 16. Validate request:\n- User permissions\n- Key access policy\n- Audit logging
+
+kms --> app: 17. Return decryption key\n(if authorized)
+deactivate kms
+
+app -> crypto: 18. Decrypt data\n(ciphertext + key + IV)
+activate crypto
+
+crypto -> crypto: 19. Apply decryption:\n- Verify authentication tag\n- Decrypt with AES-256\n- Validate integrity
+
+alt Decryption Successful
+    crypto --> app: 20a. Return plaintext data
+    app --> user: 21a. Display decrypted data\n(to authorized user)
+else Decryption Failed
+    crypto --> app: 20b. Decryption error\n(integrity check failed)
+    app --> user: 21b. Access denied\n(data corruption detected)
+end
+
+deactivate crypto
+deactivate app
+
+== Key Rotation Process ==
+
+kms -> kms: 22. Scheduled key rotation\n(monthly/quarterly)
+activate kms
+
+kms -> kms: 23. Generate new encryption key\n(maintain old key for decryption)
+
+kms -> app: 24. Notify key rotation\n(new key available)
+activate app
+
+app -> db: 25. Re-encrypt data\n(with new key, background process)
+activate db
+
+loop For each encrypted record
+    app -> crypto: 26. Decrypt with old key
+    activate crypto
+    crypto --> app: 27. Plaintext data
+    deactivate crypto
+    
+    app -> crypto: 28. Encrypt with new key
+    activate crypto
+    crypto --> app: 29. New ciphertext
+    deactivate crypto
+    
+    app -> db: 30. Update record\n(new ciphertext + new key_id)
+end
+
+db --> app: 31. Re-encryption completed
+deactivate db
+
+app -> kms: 32. Confirm key rotation\n(old key can be archived)
+deactivate app
+deactivate kms
+
+== Backup Encryption ==
+
+backup -> db: 33. Backup encrypted data\n(scheduled backup)
+activate backup
+activate db
+
+db --> backup: 34. Encrypted database dump\n(data remains encrypted)
+deactivate db
+
+backup -> backup: 35. Additional backup encryption\n(encrypt backup file itself)
+
+backup -> backup: 36. Store in secure location\n(offsite, access-controlled)
+deactivate backup
+
+note right of crypto
+  Encryption Standards:
+  - AES-256-GCM (authenticated encryption)
+  - Unique IV/nonce per operation
+  - HMAC for integrity verification
+  - Secure random number generation
+end note
+
+note right of kms
+  Key Management:
+  - Hardware Security Modules (HSM)
+  - Key rotation policies
+  - Access control and auditing
+  - Master key protection
+  - Key escrow for recovery
+end note
+
+note left of db
+  Database Security:
+  - Transparent Data Encryption (TDE)
+  - Column-level encryption
+  - Encrypted tablespaces
+  - Secure key storage
+  - Access logging
+end note
+
+@enduml

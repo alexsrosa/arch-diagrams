@@ -1,0 +1,18 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+TITLE Monolithic Application with Nginx Reverse Proxy
+
+Person(user, "User", "Uses a web browser")
+
+System_Boundary(docker_host, "Docker Host\n(Linux Server)") {
+  Container(nginx, "Nginx Reverse Proxy", "Nginx\nDocker Container", "Handles HTTPS termination and load balancing")
+  Container(monolith, "Monolithic Application", "Java, Spring Boot\nDocker Container", "Provides UI and business logic over HTTP")
+  ContainerDb(db, "Database Container", "PostgreSQL\nDocker Container", "Stores user and application data")
+}
+
+Rel(user, nginx, "Accesses via", "HTTPS")
+Rel(nginx, monolith, "Forwards requests", "HTTP")
+Rel(monolith, db, "Reads/Writes", "JDBC/SQL")
+@enduml

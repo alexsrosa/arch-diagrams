@@ -1,0 +1,110 @@
+@startuml
+!theme plain
+title Multi-Factor Authentication (MFA) Flow
+
+actor "User" as user
+participant "Web Application" as app
+participant "Authentication Server" as auth
+participant "SMS/Email Service" as sms
+participant "Mobile Device" as mobile
+database "User Database" as db
+
+note over user, db
+  Multi-factor authentication combining
+  something you know (password) and
+  something you have (phone/email)
+end note
+
+== First Factor: Password Authentication ==
+
+user -> app: 1. Login attempt\n(username, password)
+activate app
+
+app -> auth: 2. Validate credentials
+activate auth
+
+auth -> db: 3. Check user credentials
+activate db
+db --> auth: 4. User found, password valid
+deactivate db
+
+auth -> auth: 5. Generate MFA challenge\n(6-digit code + expiration)
+
+auth -> db: 6. Store MFA code temporarily
+activate db
+db --> auth: 7. Code stored
+deactivate db
+
+== Second Factor: SMS/Email Verification ==
+
+auth -> sms: 8. Send verification code\n(via SMS or email)
+activate sms
+sms -> mobile: 9. Deliver code\n"Your code: 123456"
+deactivate sms
+
+auth --> app: 10. First factor passed\nAwaiting MFA code
+deactivate auth
+
+app --> user: 11. Show MFA input form\n"Enter code sent to your phone"
+deactivate app
+
+== MFA Code Verification ==
+
+user -> app: 12. Submit MFA code\n(123456)
+activate app
+
+app -> auth: 13. Verify MFA code
+activate auth
+
+auth -> db: 14. Check stored code
+activate db
+db --> auth: 15. Code valid & not expired
+deactivate db
+
+alt MFA Code Valid
+    auth -> auth: 16. Generate session token
+    
+    auth -> db: 17. Clear MFA code\nStore session
+    activate db
+    db --> auth: 18. Session created
+    deactivate db
+    
+    auth --> app: 19. Authentication successful\n(session token)
+    
+    app --> user: 20. Login successful\nRedirect to dashboard
+    
+else MFA Code Invalid/Expired
+    auth --> app: 19. MFA verification failed
+    
+    app --> user: 20. Invalid code\nPlease try again
+end
+
+deactivate auth
+deactivate app
+
+note right of auth
+  MFA Security Benefits:
+  - Protects against password breaches
+  - Reduces account takeover risk
+  - Compliance with security standards
+  - Adaptive authentication possible
+end note
+
+note right of sms
+  Delivery Methods:
+  - SMS (most common)
+  - Email
+  - Authenticator apps (TOTP)
+  - Hardware tokens
+  - Biometric verification
+end note
+
+note left of user
+  User Experience:
+  - Clear instructions
+  - Reasonable timeout (5-10 min)
+  - Backup verification methods
+  - "Remember this device" option
+end note
+
+@enduml

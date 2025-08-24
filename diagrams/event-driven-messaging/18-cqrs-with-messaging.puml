@@ -1,0 +1,89 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title CQRS with Messaging Pattern
+
+!define RECTANGLE class
+
+RECTANGLE "Client Application" as Client {
+  + sendCommand()
+  + executeQuery()
+}
+
+RECTANGLE "Command Service" as CommandService {
+  + handleCommand()
+  + validateCommand()
+  + processBusinessLogic()
+}
+
+RECTANGLE "Command Queue" as CommandQueue {
+  + enqueue(command)
+  + dequeue()
+  + guaranteeDelivery()
+}
+
+RECTANGLE "Event Store" as EventStore {
+  + appendEvent()
+  + getEventStream()
+  + immutableEvents: []
+}
+
+RECTANGLE "Event Bus" as EventBus {
+  + publishEvent()
+  + subscribeToEvents()
+  + routeEvents()
+}
+
+RECTANGLE "Query Service" as QueryService {
+  + handleQuery()
+  + readFromModel()
+  + optimizedForReads()
+}
+
+RECTANGLE "Read Database" as ReadDatabase {
+  + denormalizedData
+  + optimizedIndexes
+  + queryOptimized: true
+}
+
+RECTANGLE "Projection Handler" as ProjectionHandler {
+  + handleEvent()
+  + updateReadModel()
+  + maintainConsistency()
+}
+
+Client --> CommandQueue : "Send Commands\n[Write Operations]"
+CommandQueue --> CommandService : "Process Commands\n[Async]"
+CommandService --> EventStore : "Store Events\n[Write Side]"
+EventStore --> EventBus : "Publish Events\n[Event Notification]"
+EventBus --> ProjectionHandler : "Handle Events\n[Update Projections]"
+ProjectionHandler --> ReadDatabase : "Update Read Models\n[Eventual Consistency]"
+Client --> QueryService : "Execute Queries\n[Read Operations]"
+QueryService --> ReadDatabase : "Read Data\n[Optimized Queries]"
+
+note right of Client
+  Client separates write
+  operations (commands) from
+  read operations (queries)
+end note
+
+note top of CommandService
+  Command side handles all
+  write operations and
+  business logic validation
+end note
+
+note left of QueryService
+  Query side is optimized
+  for read operations with
+  denormalized data models
+end note
+
+note bottom of EventBus
+  Event bus enables loose
+  coupling between command
+  and query sides through
+  asynchronous messaging
+end note
+
+@enduml

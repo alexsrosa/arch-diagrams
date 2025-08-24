@@ -1,0 +1,101 @@
+@startuml
+
+actor Frontend
+participant "BFF" as BFF
+participant "API Gateway" as APIGW
+participant "Auth Service" as AuthService
+participant "Order Service" as OrderSvc
+participant "Inventory Service" as InventorySvc
+participant Cache
+database "Inventory Replica DB" as InvReplicaDB
+database "Order Master DB" as OrderMasterDB
+database "Order Replica DB" as OrderReplicaDB
+participant Kafka
+participant "Payment Service" as PaymentSvc
+participant Monitoring
+participant Logging
+
+Frontend -> BFF : POST /orders { token, orderDetails }
+activate BFF
+
+BFF -> APIGW : POST /orders { token, orderDetails }
+activate APIGW
+
+APIGW -> AuthService : ValidateToken(token)
+activate AuthService
+AuthService --> APIGW : 200 OK (valid)
+deactivate AuthService
+
+APIGW -> OrderSvc : CreateOrder(orderDetails)
+activate OrderSvc
+
+OrderSvc -> InventorySvc : CheckStock(productId, qty)\n[gRPC]
+activate InventorySvc
+
+InventorySvc -> Cache : GET stock:{productId}
+activate Cache
+alt Cache Hit
+  Cache --> InventorySvc : stockValue
+  deactivate Cache
+else Cache Miss
+  Cache --> InventorySvc : (miss)
+  deactivate Cache
+  InventorySvc -> InvReplicaDB : SELECT stock FROM inventory\n[JDBC/SQL]
+  activate InvReplicaDB
+  InvReplicaDB --> InventorySvc : stockValue
+  deactivate InvReplicaDB
+  InventorySvc -> Cache : SET stock:{productId} = stockValue
+  activate Cache
+  Cache --> InventorySvc : OK
+  deactivate Cache
+end
+
+InventorySvc --> OrderSvc : { available: true }
+deactivate InventorySvc
+
+OrderSvc -> OrderMasterDB : INSERT INTO orders ...\n[JDBC/SQL]
+activate OrderMasterDB
+OrderMasterDB --> OrderSvc : orderId
+deactivate OrderMasterDB
+
+OrderSvc -> OrderReplicaDB : stream replication
+activate OrderReplicaDB
+OrderReplicaDB --> OrderSvc : ack
+deactivate OrderReplicaDB
+
+OrderSvc -> Kafka : publish OrderCreated(orderId,...)\n[Kafka Topic]
+activate Kafka
+Kafka --> OrderSvc : ack
+deactivate Kafka
+
+OrderSvc -> Monitoring : emit metric(order_created)
+OrderSvc -> Logging : log "OrderCreated {orderId}"
+
+OrderSvc --> APIGW : 201 Created { orderId }
+deactivate OrderSvc
+
+APIGW --> BFF : 201 Created { orderId }
+deactivate APIGW
+
+BFF --> Frontend : 201 Created { orderId }
+deactivate BFF
+
+... asynchronous processing ...
+
+Kafka -> PaymentSvc : OrderCreated(orderId,...)\n[Kafka Topic]
+activate PaymentSvc
+
+PaymentSvc -> OrderMasterDB : UPDATE orders SET status='paid'\n[JDBC/SQL]
+activate OrderMasterDB
+OrderMasterDB --> PaymentSvc : ack
+deactivate OrderMasterDB
+
+PaymentSvc -> Kafka : publish PaymentProcessed(orderId,...)\n[Kafka Topic]
+activate Kafka
+Kafka --> PaymentSvc : ack
+deactivate Kafka
+
+PaymentSvc -> Monitoring : emit metric(payment_processed)
+PaymentSvc -> Logging : log "PaymentProcessed {orderId}"
+deactivate PaymentSvc
+@enduml

@@ -1,0 +1,198 @@
+@startuml
+!theme plain
+title Secure File Upload Process
+
+actor "User" as user
+participant "Web Application" as webapp
+participant "Upload Service" as upload
+participant "File Validator" as validator
+participant "Antivirus Scanner" as av
+participant "Encryption Service" as crypto
+participant "Content Filter" as filter
+database "Secure File Storage" as storage
+participant "Audit Logger" as audit
+participant "Notification Service" as notify
+
+note over user, notify
+  Secure file upload ensures uploaded files are safe,
+  validated, encrypted, and stored securely
+end note
+
+== File Upload Initiation ==
+
+user -> webapp: 1. Access upload form\n(authenticated session)
+activate webapp
+
+webapp -> webapp: 2. Validate user session\nand upload permissions
+
+webapp --> user: 3. Display upload form\n(with security guidelines)
+deactivate webapp
+
+user -> webapp: 4. Select and submit file\n(file + metadata)
+activate webapp
+
+webapp -> audit: 5. Log upload attempt\n(user_id, filename, size, timestamp)
+activate audit
+audit --> webapp: 6. Logged successfully
+deactivate audit
+
+== Initial File Validation ==
+
+webapp -> validator: 7. Validate file properties\n(size, type, name)
+activate validator
+
+validator -> validator: 8. Check file constraints:\n- Max size (100MB)\n- Allowed extensions\n- Filename sanitization\n- MIME type validation
+
+alt File Validation Failed
+    validator --> webapp: 9a. Validation error\n(size/type/name violation)
+    webapp -> audit: 10a. Log validation failure
+    webapp --> user: 11a. Upload rejected\n(specific error message)
+    deactivate validator
+    deactivate webapp
+else File Validation Passed
+    validator --> webapp: 9b. Validation successful\n(sanitized filename)
+    deactivate validator
+end
+
+== Content Security Scanning ==
+
+webapp -> upload: 12. Transfer file for processing\n(temporary secure location)
+activate upload
+
+upload -> av: 13. Scan file for malware\n(virus, trojans, malicious code)
+activate av
+
+av -> av: 14. Perform comprehensive scan:\n- Signature-based detection\n- Heuristic analysis\n- Behavioral analysis\n- Sandbox execution
+
+alt Malware Detected
+    av --> upload: 15a. Malware found\n(threat details)
+    upload -> audit: 16a. Log security threat\n(malware type, quarantine)
+    upload -> upload: 17a. Quarantine file\n(secure isolation)
+    upload --> webapp: 18a. Upload blocked\n(security violation)
+    webapp -> notify: 19a. Alert security team\n(potential threat detected)
+    webapp --> user: 20a. Upload rejected\n(security reasons)
+    deactivate av
+    deactivate upload
+    deactivate webapp
+else File Clean
+    av --> upload: 15b. File clean\n(no threats detected)
+    deactivate av
+end
+
+== Content Filtering ==
+
+upload -> filter: 21. Content analysis\n(data loss prevention)
+activate filter
+
+filter -> filter: 22. Scan for sensitive data:\n- PII (SSN, credit cards)\n- Confidential information\n- Inappropriate content\n- Copyright violations
+
+alt Sensitive Content Found
+    filter --> upload: 23a. Policy violation\n(sensitive data detected)
+    upload -> audit: 24a. Log policy violation\n(DLP alert)
+    upload --> webapp: 25a. Upload blocked\n(policy compliance)
+    webapp --> user: 26a. Upload rejected\n(content policy violation)
+    deactivate filter
+    deactivate upload
+    deactivate webapp
+else Content Approved
+    filter --> upload: 23b. Content approved\n(policy compliant)
+    deactivate filter
+end
+
+== File Encryption and Storage ==
+
+upload -> crypto: 27. Encrypt file\n(AES-256 encryption)
+activate crypto
+
+crypto -> crypto: 28. Generate encryption:\n- Unique encryption key\n- Random IV/nonce\n- File integrity hash\n- Metadata encryption
+
+crypto --> upload: 29. Encrypted file package\n(ciphertext + metadata)
+deactivate crypto
+
+upload -> storage: 30. Store encrypted file\n(secure file system)
+activate storage
+
+storage -> storage: 31. Secure storage operations:\n- Access control validation\n- Redundant storage\n- Backup creation\n- Index update
+
+storage --> upload: 32. File stored successfully\n(file_id, storage_path)
+deactivate storage
+
+== Upload Completion ==
+
+upload -> audit: 33. Log successful upload\n(file_id, encryption_key_id)
+activate audit
+audit --> upload: 34. Audit logged
+deactivate audit
+
+upload --> webapp: 35. Upload completed\n(file_id, access_url)
+deactivate upload
+
+webapp -> webapp: 36. Generate secure access link\n(time-limited, authenticated)
+
+webapp --> user: 37. Upload successful\n(confirmation + access link)
+deactivate webapp
+
+== File Access Control ==
+
+note over webapp, storage
+  File Access Security:
+  - Authentication required
+  - Authorization checks
+  - Time-limited access tokens
+  - Download logging
+  - Watermarking (if applicable)
+end note
+
+user -> webapp: 38. Request file access\n(file_id, access_token)
+activate webapp
+
+webapp -> webapp: 39. Validate access:\n- User authentication\n- File ownership\n- Access permissions\n- Token expiration
+
+alt Access Authorized
+    webapp -> storage: 40a. Retrieve encrypted file
+    activate storage
+    storage --> webapp: 41a. Encrypted file data
+    deactivate storage
+    
+    webapp -> crypto: 42a. Decrypt file
+    activate crypto
+    crypto --> webapp: 43a. Decrypted file
+    deactivate crypto
+    
+    webapp -> audit: 44a. Log file access
+    webapp --> user: 45a. File download\n(secure delivery)
+else Access Denied
+    webapp -> audit: 40b. Log access denial
+    webapp --> user: 41b. Access denied\n(insufficient permissions)
+end
+
+deactivate webapp
+
+note right of validator
+  File Validation Rules:
+  - Maximum file size limits
+  - Allowed file extensions
+  - MIME type verification
+  - Filename sanitization
+  - Magic number validation
+end note
+
+note right of av
+  Antivirus Protection:
+  - Real-time scanning
+  - Multiple scan engines
+  - Signature updates
+  - Quarantine capabilities
+  - Threat intelligence
+end note
+
+note left of crypto
+  Encryption Standards:
+  - AES-256-GCM encryption
+  - Unique keys per file
+  - Secure key management
+  - Integrity verification
+  - Metadata protection
+end note
+
+@enduml

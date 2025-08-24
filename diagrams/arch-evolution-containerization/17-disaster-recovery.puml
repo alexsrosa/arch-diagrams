@@ -1,0 +1,137 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+TITLE Disaster Recovery and Backup Strategy
+
+Person(user, "User", "Application users")
+Person(admin, "DR Admin", "Disaster recovery administrator")
+Person(ops, "Operations Team", "Operations engineer")
+
+System_Boundary(primary_region, "Primary Region (US-East)") {
+  System_Boundary(primary_cluster, "Primary Kubernetes Cluster") {
+    System_Boundary(apps_ns, "Applications Namespace") {
+      Container(ingress_primary, "Ingress Controller", "Nginx Ingress", "Primary traffic entry")
+      
+      Container(user_svc_primary, "User Service", "ClusterIP", "User management (Active)")
+      Container(user_pods_primary, "User Pods", "Java, Spring Boot\nStateless (5 replicas)", "Active user operations")
+      
+      Container(product_svc_primary, "Product Service", "ClusterIP", "Product catalog (Active)")
+      Container(product_pods_primary, "Product Pods", "Go, Gin\nStateless (5 replicas)", "Active product management")
+      
+      Container(order_svc_primary, "Order Service", "ClusterIP", "Order processing (Active)")
+      Container(order_pods_primary, "Order Pods", "Java, Spring Boot\nStateless (5 replicas)", "Active order processing")
+    }
+    
+    System_Boundary(storage_primary, "Primary Storage") {
+      ContainerDb(user_db_primary, "User Database", "PostgreSQL\nStatefulSet (Primary)", "Master user database")
+      ContainerDb(product_db_primary, "Product Database", "MongoDB\nStatefulSet (Primary)", "Master product catalog")
+      ContainerDb(order_db_primary, "Order Database", "PostgreSQL\nStatefulSet (Primary)", "Master order database")
+      Container(redis_primary, "Redis Cache", "Redis Cluster", "Primary cache layer")
+    }
+    
+    System_Boundary(backup_primary, "Backup Components") {
+      Container(velero_primary, "Velero", "Backup Controller", "Kubernetes resource backup")
+      Container(pgbackrest, "pgBackRest", "PostgreSQL Backup", "Database backup tool")
+      Container(mongodb_backup, "MongoDB Backup", "Backup Agent", "MongoDB backup automation")
+      Container(etcd_backup, "etcd Backup", "Backup Job", "Kubernetes state backup")
+    }
+  }
+}
+
+System_Boundary(dr_region, "DR Region (US-West)") {
+  System_Boundary(dr_cluster, "DR Kubernetes Cluster") {
+    System_Boundary(apps_dr_ns, "Applications Namespace (Standby)") {
+      Container(ingress_dr, "Ingress Controller", "Nginx Ingress", "DR traffic entry (Standby)")
+      
+      Container(user_svc_dr, "User Service", "ClusterIP", "User management (Standby)")
+      Container(user_pods_dr, "User Pods", "Java, Spring Boot\nStateless (2 replicas)", "Standby user operations")
+      
+      Container(product_svc_dr, "Product Service", "ClusterIP", "Product catalog (Standby)")
+      Container(product_pods_dr, "Product Pods", "Go, Gin\nStateless (2 replicas)", "Standby product management")
+      
+      Container(order_svc_dr, "Order Service", "ClusterIP", "Order processing (Standby)")
+      Container(order_pods_dr, "Order Pods", "Java, Spring Boot\nStateless (2 replicas)", "Standby order processing")
+    }
+    
+    System_Boundary(storage_dr, "DR Storage") {
+      ContainerDb(user_db_dr, "User Database", "PostgreSQL\nStatefulSet (Standby)", "Standby user database")
+      ContainerDb(product_db_dr, "Product Database", "MongoDB\nStatefulSet (Standby)", "Standby product catalog")
+      ContainerDb(order_db_dr, "Order Database", "PostgreSQL\nStatefulSet (Standby)", "Standby order database")
+      Container(redis_dr, "Redis Cache", "Redis Cluster", "DR cache layer")
+    }
+    
+    System_Boundary(backup_dr, "DR Backup Components") {
+      Container(velero_dr, "Velero", "Backup Controller", "DR backup management")
+      Container(restore_controller, "Restore Controller", "Custom Controller", "Automated restore orchestration")
+    }
+  }
+}
+
+System_Boundary(backup_storage, "Backup Storage") {
+  Container(s3_primary, "S3 Primary Backup", "AWS S3 Bucket", "Primary backup storage")
+  Container(s3_dr, "S3 DR Backup", "AWS S3 Bucket", "DR backup storage")
+  Container(glacier, "Glacier Archive", "AWS Glacier", "Long-term archive storage")
+  Container(cross_region_replication, "Cross-Region Replication", "AWS S3 CRR", "Automated backup replication")
+}
+
+System_Boundary(monitoring_dr, "DR Monitoring") {
+  Container(dr_dashboard, "DR Dashboard", "Grafana", "Disaster recovery monitoring")
+  Container(rpo_rto_monitor, "RPO/RTO Monitor", "Custom Metrics", "Recovery objectives tracking")
+  Container(backup_monitor, "Backup Monitor", "Prometheus", "Backup job monitoring")
+  Container(replication_monitor, "Replication Monitor", "Custom Exporter", "Database replication health")
+}
+
+System_Boundary(automation_dr, "DR Automation") {
+  Container(runbook_automation, "Runbook Automation", "Ansible/Terraform", "Automated DR procedures")
+  Container(failover_controller, "Failover Controller", "Custom Controller", "Automated failover orchestration")
+  Container(dns_failover, "DNS Failover", "Route53 Health Checks", "Automatic DNS switching")
+  Container(chaos_engineering, "Chaos Engineering", "Chaos Monkey/Litmus", "DR testing automation")
+}
+
+System_Boundary(external_services, "External Services") {
+  Container(route53, "Route53", "DNS Service", "Global DNS with health checks")
+  Container(cloudflare, "CloudFlare", "CDN/DNS", "Global traffic management")
+  Container(pagerduty, "PagerDuty", "Incident Management", "DR incident coordination")
+  Container(slack, "Slack", "Communication", "DR team notifications")
+}
+
+Rel(user, route53, "DNS resolution", "DNS")
+Rel(route53, ingress_primary, "Primary traffic", "HTTP/HTTPS")
+Rel(route53, ingress_dr, "Failover traffic", "HTTP/HTTPS")
+Rel(dns_failover, route53, "Health check updates", "Route53 API")
+Rel(ingress_primary, user_svc_primary, "Routes requests", "HTTP")
+Rel(ingress_primary, product_svc_primary, "Routes requests", "HTTP")
+Rel(ingress_primary, order_svc_primary, "Routes requests", "HTTP")
+Rel(user_pods_primary, user_db_primary, "Active operations", "JDBC/SQL")
+Rel(product_pods_primary, product_db_primary, "Active operations", "MongoDB Protocol")
+Rel(order_pods_primary, order_db_primary, "Active operations", "JDBC/SQL")
+Rel(user_db_primary, user_db_dr, "Streaming replication", "PostgreSQL Streaming")
+Rel(product_db_primary, product_db_dr, "Replica set sync", "MongoDB Replica Set")
+Rel(order_db_primary, order_db_dr, "Streaming replication", "PostgreSQL Streaming")
+Rel(redis_primary, redis_dr, "Data replication", "Redis Replication")
+Rel(velero_primary, s3_primary, "Backup storage", "S3 API")
+Rel(pgbackrest, s3_primary, "Database backups", "S3 API")
+Rel(mongodb_backup, s3_primary, "Database backups", "S3 API")
+Rel(etcd_backup, s3_primary, "Cluster state backup", "S3 API")
+Rel(s3_primary, cross_region_replication, "Backup replication", "S3 CRR")
+Rel(cross_region_replication, s3_dr, "Replicated backups", "S3 API")
+Rel(s3_primary, glacier, "Archive backups", "S3 Lifecycle")
+Rel(velero_dr, s3_dr, "Restore from backup", "S3 API")
+Rel(restore_controller, velero_dr, "Orchestrates restore", "Kubernetes API")
+Rel(failover_controller, restore_controller, "Triggers restore", "Kubernetes API")
+Rel(failover_controller, dns_failover, "Updates DNS", "Route53 API")
+Rel(backup_monitor, velero_primary, "Monitors backups", "Prometheus")
+Rel(backup_monitor, pgbackrest, "Monitors backups", "Prometheus")
+Rel(replication_monitor, user_db_primary, "Monitors replication", "PostgreSQL Stats")
+Rel(replication_monitor, product_db_primary, "Monitors replication", "MongoDB Stats")
+Rel(rpo_rto_monitor, dr_dashboard, "RPO/RTO metrics", "Prometheus")
+Rel(chaos_engineering, primary_cluster, "Simulates failures", "Kubernetes API")
+Rel(runbook_automation, failover_controller, "Executes procedures", "API")
+Rel(dr_dashboard, pagerduty, "DR alerts", "Webhook")
+Rel(pagerduty, slack, "Team notifications", "Slack API")
+Rel(admin, dr_dashboard, "Monitors DR status", "HTTPS")
+Rel(admin, runbook_automation, "Manages procedures", "HTTPS")
+Rel(ops, backup_monitor, "Monitors backups", "HTTPS")
+Rel(ops, chaos_engineering, "Runs DR tests", "HTTPS")
+@enduml

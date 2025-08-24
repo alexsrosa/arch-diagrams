@@ -1,0 +1,17 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+TITLE Monolithic Application Deployed on Single VM
+
+Person(user, "User", "Uses a web browser")
+
+System_Boundary(vm, "Application VM\n(Ubuntu Linux)") {
+  Container(monolith, "Monolithic Application", "Java, Spring Boot", "Provides UI and business logic over HTTP")
+}
+
+ContainerDb(db, "Relational Database", "PostgreSQL", "Stores user and application data")
+
+Rel(user, monolith, "Accesses via", "HTTP/HTTPS")
+Rel(monolith, db, "Reads/Writes", "JDBC/SQL")
+@enduml

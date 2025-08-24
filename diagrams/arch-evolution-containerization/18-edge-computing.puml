@@ -1,0 +1,172 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+TITLE Edge Computing with Edge Nodes
+
+Person(mobile_user, "Mobile User", "Mobile application user")
+Person(iot_device, "IoT Device", "Smart sensor/device")
+Person(edge_user, "Edge User", "Local facility user")
+
+System_Boundary(edge_location_1, "Edge Location 1 (New York)") {
+  System_Boundary(edge_cluster_1, "Edge Kubernetes Cluster") {
+    Container(edge_ingress_1, "Edge Ingress", "Nginx Ingress", "Local traffic entry")
+    Container(edge_gateway_1, "Edge Gateway", "API Gateway", "Local API management")
+    
+    System_Boundary(edge_apps_1, "Edge Applications") {
+      Container(content_cache_1, "Content Cache", "Redis/Varnish", "Local content caching")
+      Container(user_service_edge_1, "User Service (Edge)", "Lightweight Service", "Local user operations")
+      Container(analytics_edge_1, "Analytics Service", "Stream Processing", "Real-time local analytics")
+      Container(ml_inference_1, "ML Inference", "TensorFlow Serving", "Local model inference")
+    }
+    
+    System_Boundary(edge_storage_1, "Edge Storage") {
+      ContainerDb(edge_db_1, "Edge Database", "SQLite/EdgeDB", "Local data storage")
+      Container(edge_cache_1, "Edge Cache", "Redis Cluster", "Local caching layer")
+    }
+    
+    System_Boundary(edge_iot_1, "IoT Gateway") {
+      Container(mqtt_broker_1, "MQTT Broker", "Eclipse Mosquitto", "IoT message broker")
+      Container(iot_processor_1, "IoT Data Processor", "Apache Kafka Streams", "IoT data processing")
+      Container(device_manager_1, "Device Manager", "Custom Service", "IoT device management")
+    }
+  }
+}
+
+System_Boundary(edge_location_2, "Edge Location 2 (Los Angeles)") {
+  System_Boundary(edge_cluster_2, "Edge Kubernetes Cluster") {
+    Container(edge_ingress_2, "Edge Ingress", "Nginx Ingress", "Local traffic entry")
+    Container(edge_gateway_2, "Edge Gateway", "API Gateway", "Local API management")
+    
+    System_Boundary(edge_apps_2, "Edge Applications") {
+      Container(content_cache_2, "Content Cache", "Redis/Varnish", "Local content caching")
+      Container(user_service_edge_2, "User Service (Edge)", "Lightweight Service", "Local user operations")
+      Container(analytics_edge_2, "Analytics Service", "Stream Processing", "Real-time local analytics")
+      Container(ml_inference_2, "ML Inference", "TensorFlow Serving", "Local model inference")
+    }
+    
+    System_Boundary(edge_storage_2, "Edge Storage") {
+      ContainerDb(edge_db_2, "Edge Database", "SQLite/EdgeDB", "Local data storage")
+      Container(edge_cache_2, "Edge Cache", "Redis Cluster", "Local caching layer")
+    }
+    
+    System_Boundary(edge_iot_2, "IoT Gateway") {
+      Container(mqtt_broker_2, "MQTT Broker", "Eclipse Mosquitto", "IoT message broker")
+      Container(iot_processor_2, "IoT Data Processor", "Apache Kafka Streams", "IoT data processing")
+      Container(device_manager_2, "Device Manager", "Custom Service", "IoT device management")
+    }
+  }
+}
+
+System_Boundary(edge_location_3, "Edge Location 3 (Chicago)") {
+  System_Boundary(edge_cluster_3, "Edge Kubernetes Cluster") {
+    Container(edge_ingress_3, "Edge Ingress", "Nginx Ingress", "Local traffic entry")
+    Container(edge_gateway_3, "Edge Gateway", "API Gateway", "Local API management")
+    
+    System_Boundary(edge_apps_3, "Edge Applications") {
+      Container(content_cache_3, "Content Cache", "Redis/Varnish", "Local content caching")
+      Container(user_service_edge_3, "User Service (Edge)", "Lightweight Service", "Local user operations")
+      Container(analytics_edge_3, "Analytics Service", "Stream Processing", "Real-time local analytics")
+      Container(ml_inference_3, "ML Inference", "TensorFlow Serving", "Local model inference")
+    }
+    
+    System_Boundary(edge_storage_3, "Edge Storage") {
+      ContainerDb(edge_db_3, "Edge Database", "SQLite/EdgeDB", "Local data storage")
+      Container(edge_cache_3, "Edge Cache", "Redis Cluster", "Local caching layer")
+    }
+    
+    System_Boundary(edge_iot_3, "IoT Gateway") {
+      Container(mqtt_broker_3, "MQTT Broker", "Eclipse Mosquitto", "IoT message broker")
+      Container(iot_processor_3, "IoT Data Processor", "Apache Kafka Streams", "IoT data processing")
+      Container(device_manager_3, "Device Manager", "Custom Service", "IoT device management")
+    }
+  }
+}
+
+System_Boundary(central_cloud, "Central Cloud (AWS/Azure)") {
+  System_Boundary(central_cluster, "Central Kubernetes Cluster") {
+    Container(cloud_ingress, "Cloud Ingress", "ALB/Application Gateway", "Central traffic entry")
+    Container(api_gateway_central, "API Gateway", "Kong/Ambassador", "Central API management")
+    
+    System_Boundary(central_services, "Central Services") {
+      Container(user_service_central, "User Service", "Microservice", "Central user management")
+      Container(product_service_central, "Product Service", "Microservice", "Product catalog")
+      Container(order_service_central, "Order Service", "Microservice", "Order processing")
+      Container(ml_training, "ML Training", "Kubeflow/MLflow", "Model training pipeline")
+      Container(data_aggregator, "Data Aggregator", "Apache Spark", "Edge data aggregation")
+    }
+    
+    System_Boundary(central_storage, "Central Storage") {
+      ContainerDb(central_db, "Central Database", "PostgreSQL Cluster", "Master data storage")
+      Container(data_lake, "Data Lake", "S3/Azure Data Lake", "Big data storage")
+      Container(model_registry, "Model Registry", "MLflow Registry", "ML model versioning")
+    }
+  }
+}
+
+System_Boundary(edge_management, "Edge Management") {
+  Container(edge_orchestrator, "Edge Orchestrator", "KubeEdge/OpenYurt", "Edge cluster management")
+  Container(edge_monitor, "Edge Monitor", "Prometheus Federation", "Edge monitoring")
+  Container(edge_updater, "Edge Updater", "Flux/ArgoCD", "Edge application updates")
+  Container(network_optimizer, "Network Optimizer", "SD-WAN Controller", "Network path optimization")
+}
+
+System_Boundary(cdn_network, "CDN Network") {
+  Container(global_cdn, "Global CDN", "CloudFlare/CloudFront", "Global content delivery")
+  Container(edge_cdn, "Edge CDN", "Local CDN Nodes", "Edge content caching")
+  Container(dns_resolver, "DNS Resolver", "GeoDNS", "Location-based routing")
+}
+
+Rel(mobile_user, dns_resolver, "DNS query", "DNS")
+Rel(dns_resolver, edge_ingress_1, "Routes to nearest edge", "HTTP/HTTPS")
+Rel(edge_user, edge_ingress_1, "Local access", "HTTP/HTTPS")
+Rel(iot_device, mqtt_broker_1, "Sensor data", "MQTT")
+Rel(edge_ingress_1, edge_gateway_1, "Routes requests", "HTTP")
+Rel(edge_gateway_1, content_cache_1, "Cache requests", "HTTP")
+Rel(edge_gateway_1, user_service_edge_1, "User operations", "HTTP")
+Rel(edge_gateway_1, ml_inference_1, "Inference requests", "HTTP")
+Rel(mqtt_broker_1, iot_processor_1, "IoT messages", "MQTT")
+Rel(iot_processor_1, analytics_edge_1, "Processed data", "HTTP/gRPC")
+Rel(analytics_edge_1, edge_db_1, "Stores analytics", "SQL")
+Rel(ml_inference_1, edge_cache_1, "Model cache", "Redis Protocol")
+Rel(user_service_edge_1, edge_db_1, "Local data", "SQL")
+Rel(device_manager_1, mqtt_broker_1, "Device control", "MQTT")
+Rel(edge_ingress_2, edge_gateway_2, "Routes requests", "HTTP")
+Rel(edge_gateway_2, content_cache_2, "Cache requests", "HTTP")
+Rel(edge_gateway_2, user_service_edge_2, "User operations", "HTTP")
+Rel(mqtt_broker_2, iot_processor_2, "IoT messages", "MQTT")
+Rel(iot_processor_2, analytics_edge_2, "Processed data", "HTTP/gRPC")
+Rel(edge_ingress_3, edge_gateway_3, "Routes requests", "HTTP")
+Rel(edge_gateway_3, content_cache_3, "Cache requests", "HTTP")
+Rel(mqtt_broker_3, iot_processor_3, "IoT messages", "MQTT")
+Rel(edge_orchestrator, edge_cluster_1, "Manages cluster", "Kubernetes API")
+Rel(edge_orchestrator, edge_cluster_2, "Manages cluster", "Kubernetes API")
+Rel(edge_orchestrator, edge_cluster_3, "Manages cluster", "Kubernetes API")
+Rel(edge_monitor, analytics_edge_1, "Collects metrics", "Prometheus")
+Rel(edge_monitor, analytics_edge_2, "Collects metrics", "Prometheus")
+Rel(edge_monitor, analytics_edge_3, "Collects metrics", "Prometheus")
+Rel(edge_updater, edge_cluster_1, "Updates applications", "Git/Helm")
+Rel(edge_updater, edge_cluster_2, "Updates applications", "Git/Helm")
+Rel(edge_updater, edge_cluster_3, "Updates applications", "Git/Helm")
+Rel(analytics_edge_1, data_aggregator, "Aggregated data", "HTTP/Kafka")
+Rel(analytics_edge_2, data_aggregator, "Aggregated data", "HTTP/Kafka")
+Rel(analytics_edge_3, data_aggregator, "Aggregated data", "HTTP/Kafka")
+Rel(data_aggregator, data_lake, "Stores big data", "S3 API")
+Rel(ml_training, model_registry, "Stores models", "MLflow API")
+Rel(model_registry, ml_inference_1, "Model updates", "HTTP")
+Rel(model_registry, ml_inference_2, "Model updates", "HTTP")
+Rel(model_registry, ml_inference_3, "Model updates", "HTTP")
+Rel(user_service_edge_1, user_service_central, "Sync user data", "HTTP/gRPC")
+Rel(user_service_edge_2, user_service_central, "Sync user data", "HTTP/gRPC")
+Rel(user_service_edge_3, user_service_central, "Sync user data", "HTTP/gRPC")
+Rel(edge_db_1, central_db, "Data synchronization", "Database Sync")
+Rel(edge_db_2, central_db, "Data synchronization", "Database Sync")
+Rel(edge_db_3, central_db, "Data synchronization", "Database Sync")
+Rel(global_cdn, edge_cdn, "Content distribution", "HTTP")
+Rel(edge_cdn, content_cache_1, "Cache population", "HTTP")
+Rel(edge_cdn, content_cache_2, "Cache population", "HTTP")
+Rel(edge_cdn, content_cache_3, "Cache population", "HTTP")
+Rel(network_optimizer, edge_cluster_1, "Optimizes connectivity", "SD-WAN")
+Rel(network_optimizer, edge_cluster_2, "Optimizes connectivity", "SD-WAN")
+Rel(network_optimizer, edge_cluster_3, "Optimizes connectivity", "SD-WAN")
+@enduml

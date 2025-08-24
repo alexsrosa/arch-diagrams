@@ -1,0 +1,232 @@
+@startuml
+!theme plain
+title PCI-DSS Compliant Payment Processing Flow
+
+actor "Customer" as customer
+participant "Web Application" as webapp
+participant "Payment Form" as form
+participant "Tokenization Service" as tokenizer
+participant "PCI Vault" as vault
+participant "Payment Gateway" as gateway
+participant "Card Network" as network
+participant "Issuing Bank" as bank
+participant "Fraud Detection" as fraud
+participant "Audit Logger" as audit
+participant "HSM" as hsm
+
+note over customer, hsm
+  PCI-DSS compliance ensures secure handling of
+  cardholder data throughout the payment process
+end note
+
+== Secure Payment Form ==
+
+customer -> webapp: 1. Access checkout page\n(HTTPS required)
+activate webapp
+
+webapp -> webapp: 2. Validate session:\n- User authentication\n- Cart validation\n- SSL/TLS verification\n- Security headers
+
+webapp -> form: 3. Load secure payment form\n(PCI-compliant iframe)
+activate form
+
+form -> form: 4. Initialize secure form:\n- Client-side encryption\n- Input validation\n- PCI-compliant UI\n- No data storage
+
+form --> customer: 5. Display payment form\n(secure input fields)
+deactivate form
+
+customer -> form: 6. Enter payment details\n(card number, CVV, expiry)
+activate form
+
+form -> form: 7. Client-side validation:\n- Luhn algorithm check\n- Format validation\n- Required field check\n- Real-time feedback
+
+== Tokenization Process ==
+
+form -> tokenizer: 8. Submit encrypted card data\n(E2E encryption)
+activate tokenizer
+deactivate form
+
+tokenizer -> tokenizer: 9. Decrypt payment data:\n- Validate encryption\n- Extract card details\n- Perform data validation\n- Check card format
+
+tokenizer -> fraud: 10. Initial fraud screening\n(velocity checks, patterns)
+activate fraud
+
+fraud -> fraud: 11. Analyze transaction:\n- Velocity limits\n- Geolocation checks\n- Device fingerprinting\n- Behavioral analysis
+
+alt Fraud Detected
+    fraud --> tokenizer: 12a. Fraud alert\n(high risk transaction)
+    tokenizer -> audit: 13a. Log fraud attempt\n(security incident)
+    tokenizer --> webapp: 14a. Transaction declined\n(fraud prevention)
+    webapp --> customer: 15a. Payment declined\n(try different method)
+    deactivate fraud
+    deactivate tokenizer
+    deactivate webapp
+else Fraud Check Passed
+    fraud --> tokenizer: 12b. Fraud check passed\n(low risk transaction)
+    deactivate fraud
+end
+
+tokenizer -> hsm: 16. Generate secure token\n(hardware security module)
+activate hsm
+
+hsm -> hsm: 17. Token generation:\n- Cryptographically secure\n- Format-preserving\n- Unique identifier\n- Reversible mapping
+
+hsm --> tokenizer: 18. Return token\n(PAN replacement)
+deactivate hsm
+
+tokenizer -> vault: 19. Store card data mapping\n(encrypted vault)
+activate vault
+
+vault -> vault: 20. Secure storage:\n- AES-256 encryption\n- Access controls\n- Audit logging\n- Key rotation
+
+vault --> tokenizer: 21. Storage confirmed\n(vault reference)
+deactivate vault
+
+tokenizer -> audit: 22. Log tokenization\n(compliance audit)
+activate audit
+audit --> tokenizer: 23. Audit logged
+deactivate audit
+
+tokenizer --> webapp: 24. Return payment token\n(no sensitive data)
+deactivate tokenizer
+
+== Payment Authorization ==
+
+webapp -> gateway: 25. Submit payment request\n(token + transaction data)
+activate gateway
+
+gateway -> gateway: 26. Validate request:\n- Merchant authentication\n- Transaction limits\n- Currency validation\n- Amount verification
+
+gateway -> vault: 27. Detokenize payment data\n(retrieve real PAN)
+activate vault
+
+vault -> vault: 28. Secure detokenization:\n- Access authorization\n- Decryption process\n- Audit trail\n- Time-limited access
+
+vault --> gateway: 29. Real card data\n(temporary access)
+deactivate vault
+
+gateway -> network: 30. Send authorization request\n(ISO 8583 message)
+activate network
+
+network -> network: 31. Route to issuer:\n- Card validation\n- Network routing\n- Message formatting\n- Security checks
+
+network -> bank: 32. Authorization request\n(issuing bank)
+activate bank
+
+bank -> bank: 33. Process authorization:\n- Account validation\n- Available balance\n- Risk assessment\n- Fraud scoring
+
+alt Authorization Approved
+    bank --> network: 34a. Authorization approved\n(approval code)
+    network --> gateway: 35a. Approved response\n(authorization code)
+    
+    gateway -> gateway: 36a. Process approval:\n    - Generate transaction ID\n    - Update merchant account\n    - Prepare settlement\n    - Clear sensitive data
+    
+    gateway --> webapp: 37a. Payment approved\n(transaction reference)
+    webapp --> customer: 38a. Payment successful\n(confirmation page)
+else Authorization Declined
+    bank --> network: 34b. Authorization declined\n(decline reason)
+    network --> gateway: 35b. Declined response\n(reason code)
+    
+    gateway -> gateway: 36b. Process decline:\n    - Log decline reason\n    - Update attempt counter\n    - Clear sensitive data\n    - Generate decline code
+    
+    gateway --> webapp: 37b. Payment declined\n(decline reason)
+    webapp --> customer: 38b. Payment failed\n(retry options)
+end
+
+deactivate bank
+deactivate network
+
+== Settlement and Compliance ==
+
+gateway -> audit: 39. Log transaction\n(PCI compliance audit)
+activate audit
+
+audit -> audit: 40. Comprehensive logging:\n- Transaction details\n- Security events\n- Access attempts\n- Data flows
+
+audit --> gateway: 41. Audit completed
+deactivate audit
+
+gateway -> gateway: 42. Settlement preparation:\n- Batch transactions\n- Calculate fees\n- Generate reports\n- Schedule transfers
+
+deactivate gateway
+deactivate webapp
+
+== Data Security Measures ==
+
+note over tokenizer, vault
+  PCI-DSS Requirements:
+  - Secure network architecture
+  - Cardholder data protection
+  - Vulnerability management
+  - Access control measures
+  - Network monitoring
+  - Information security policies
+end note
+
+== Recurring Payment Setup ==
+
+alt Customer Opts for Recurring
+    customer -> webapp: 43a. Enable recurring payments\n(subscription setup)
+    activate webapp
+    
+    webapp -> vault: 44a. Store token reference\n(recurring payment profile)
+    activate vault
+    
+    vault -> vault: 45a. Create payment profile:\n    - Token association\n    - Billing schedule\n    - Amount limits\n    - Expiration handling
+    
+    vault --> webapp: 46a. Profile created\n(recurring payment ID)
+    deactivate vault
+    
+    webapp --> customer: 47a. Recurring setup complete\n(subscription confirmed)
+    deactivate webapp
+else One-time Payment
+    webapp -> tokenizer: 43b. Schedule token cleanup\n(data retention policy)
+    activate tokenizer
+    
+    tokenizer -> tokenizer: 44b. Token lifecycle:\n    - Retention period\n    - Automatic purging\n    - Compliance cleanup\n    - Audit trail
+    
+    deactivate tokenizer
+end
+
+== Compliance Monitoring ==
+
+audit -> audit: 48. Generate compliance reports:\n- PCI-DSS assessment\n- Security metrics\n- Incident reports\n- Vulnerability scans
+
+audit -> audit: 49. Continuous monitoring:\n- Real-time alerts\n- Anomaly detection\n- Access monitoring\n- Data flow tracking
+
+note right of hsm
+  Hardware Security Module:
+  - FIPS 140-2 Level 3
+  - Tamper-resistant
+  - Key generation
+  - Cryptographic operations
+  - Secure key storage
+end note
+
+note right of vault
+  PCI Vault Security:
+  - Network segmentation
+  - Strong encryption
+  - Access controls
+  - Regular audits
+  - Penetration testing
+end note
+
+note left of gateway
+  Payment Gateway:
+  - PCI-DSS Level 1
+  - End-to-end encryption
+  - Tokenization support
+  - Fraud prevention
+  - Multi-currency support
+end note
+
+note left of fraud
+  Fraud Detection:
+  - Machine learning models
+  - Real-time scoring
+  - Velocity checking
+  - Device fingerprinting
+  - Behavioral analysis
+end note
+
+@enduml

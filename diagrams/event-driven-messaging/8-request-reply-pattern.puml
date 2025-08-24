@@ -1,0 +1,59 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Request-Reply Pattern
+
+!define RECTANGLE class
+
+RECTANGLE "Request Producer" as RequestProducer {
+  + sendRequest()
+  + waitForReply()
+  + correlationId()
+}
+
+RECTANGLE "Request Queue" as RequestQueue {
+  + enqueue(request)
+  + dequeue()
+}
+
+RECTANGLE "Request Consumer" as RequestConsumer {
+  + processRequest()
+  + sendReply()
+  + extractCorrelationId()
+}
+
+RECTANGLE "Reply Queue" as ReplyQueue {
+  + enqueue(reply)
+  + dequeue()
+}
+
+RequestProducer --> RequestQueue : "Send Request\n[with CorrelationId]"
+RequestQueue --> RequestConsumer : "Pull Request\n[Process]"
+RequestConsumer --> ReplyQueue : "Send Reply\n[with CorrelationId]"
+ReplyQueue --> RequestProducer : "Receive Reply\n[Match CorrelationId]"
+
+note right of RequestProducer
+  Producer sends request with
+  unique correlation ID and
+  waits for matching reply
+end note
+
+note top of RequestQueue
+  Request queue holds
+  incoming requests for
+  processing
+end note
+
+note left of RequestConsumer
+  Consumer processes request
+  and sends reply back with
+  same correlation ID
+end note
+
+note bottom of ReplyQueue
+  Reply queue delivers
+  responses back to the
+  original requestor
+end note
+
+@enduml

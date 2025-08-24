@@ -1,0 +1,351 @@
+@startuml
+!theme plain
+title End-to-End Encrypted Messaging System
+
+actor "User A (Alice)" as alice
+actor "User B (Bob)" as bob
+participant "Alice's Device" as alice_device
+participant "Key Management" as keymgmt
+participant "Message Server" as server
+participant "Push Notification" as push
+participant "Bob's Device" as bob_device
+participant "Identity Verification" as identity
+participant "Backup Service" as backup
+participant "Audit Logger" as audit
+
+note over alice, audit
+  End-to-end encryption ensures only the sender and recipient
+  can read messages, with no intermediate party having access
+end note
+
+== Initial Setup and Key Generation ==
+
+alice -> alice_device: 1. Install messaging app\n(first-time setup)
+activate alice_device
+
+alice_device -> alice_device: 2. Generate key pair:\n- Ed25519 identity key\n- X25519 signed prekey\n- X25519 one-time prekeys\n- Device fingerprint\n- Key bundle creation
+
+alice_device -> keymgmt: 3. Register public keys\n(key distribution)
+activate keymgmt
+
+keymgmt -> keymgmt: 4. Key validation:\n- Signature verification\n- Key format validation\n- Duplicate detection\n- Expiration setting\n- Storage preparation
+
+keymgmt -> identity: 5. Identity verification\n(user authentication)
+activate identity
+
+identity -> identity: 6. Identity validation:\n- Phone number verification\n- Email confirmation\n- Device attestation\n- Biometric binding\n- Trust establishment
+
+identity --> keymgmt: 7. Identity confirmed\n(user verified)
+deactivate identity
+
+keymgmt -> audit: 8. Log key registration\n(audit trail)
+activate audit
+
+audit -> audit: 9. Registration logging:\n- User identity\n- Device information\n- Key fingerprints\n- Registration timestamp\n- Verification status
+
+deactivate audit
+
+keymgmt --> alice_device: 10. Registration complete\n(keys published)
+deactivate keymgmt
+
+alice_device --> alice: 11. Setup complete\n(ready to message)
+deactivate alice_device
+
+== Bob's Setup (Similar Process) ==
+
+bob -> bob_device: 12. Install and setup\n(parallel process)
+activate bob_device
+
+bob_device -> keymgmt: 13. Register Bob's keys\n(key publication)
+activate keymgmt
+
+keymgmt -> identity: 14. Verify Bob's identity\n(authentication)
+activate identity
+
+identity --> keymgmt: 15. Bob verified\n(identity confirmed)
+deactivate identity
+
+keymgmt --> bob_device: 16. Bob registered\n(keys available)
+deactivate keymgmt
+deactivate bob_device
+
+== Message Encryption and Sending ==
+
+alice -> alice_device: 17. Compose message\n("Hello Bob!")
+activate alice_device
+
+alice_device -> keymgmt: 18. Request Bob's keys\n(key retrieval)
+activate keymgmt
+
+keymgmt -> keymgmt: 19. Key bundle preparation:\n- Identity key\n- Signed prekey\n- One-time prekey\n- Key validation\n- Freshness check
+
+keymgmt --> alice_device: 20. Bob's key bundle\n(encryption keys)
+deactivate keymgmt
+
+alice_device -> alice_device: 21. Signal Protocol setup:\n- X3DH key agreement\n- Shared secret derivation\n- Double Ratchet initialization\n- Chain key generation\n- Message key derivation
+
+alice_device -> alice_device: 22. Message encryption:\n- AES-256-GCM encryption\n- HMAC-SHA256 authentication\n- Header encryption\n- Metadata protection\n- Forward secrecy
+
+alice_device -> alice_device: 23. Encrypted message structure:\n- Protocol version\n- Sender's ephemeral key\n- Previous chain length\n- Message number\n- Encrypted payload
+
+alice_device -> server: 24. Send encrypted message\n(opaque ciphertext)
+activate server
+
+server -> server: 25. Message handling:\n- Recipient identification\n- Message queuing\n- Delivery scheduling\n- Metadata logging\n- Storage preparation
+
+server -> audit: 26. Log message transit\n(metadata only)
+activate audit
+
+audit -> audit: 27. Transit logging:\n- Message ID\n- Sender/recipient IDs\n- Timestamp\n- Message size\n- Delivery status
+
+deactivate audit
+
+server -> push: 28. Trigger notification\n(delivery signal)
+activate push
+
+push -> bob_device: 29. Push notification\n(new message alert)
+activate bob_device
+
+deactivate push
+
+bob_device -> server: 30. Fetch message\n(retrieve ciphertext)
+
+server --> bob_device: 31. Encrypted message\n(opaque data)
+deactivate server
+
+== Message Decryption and Display ==
+
+bob_device -> bob_device: 32. Signal Protocol processing:\n- Sender verification\n- Key derivation\n- Chain advancement\n- Message key generation\n- Ratchet update
+
+bob_device -> bob_device: 33. Message decryption:\n- AES-256-GCM decryption\n- HMAC verification\n- Authenticity validation\n- Integrity checking\n- Plaintext recovery
+
+alt Decryption Successful
+    bob_device -> bob_device: 34a. Message validation:\n    - Signature verification\n    - Replay protection\n    - Order validation\n    - Duplicate detection\n    - Content filtering
+    
+    bob_device -> bob: 35a. Display message\n("Hello Bob!")
+    activate bob
+    
+    bob -> bob_device: 36a. Read receipt\n(message acknowledged)
+    
+    bob_device -> server: 37a. Delivery confirmation\n(read receipt)
+    activate server
+    
+    server -> alice_device: 38a. Delivery status\n(message delivered)
+    activate alice_device
+    
+    alice_device -> alice: 39a. Delivery notification\n(message read)
+    activate alice
+    
+    deactivate alice
+    deactivate alice_device
+    deactivate server
+    deactivate bob
+    
+else Decryption Failed
+    bob_device -> bob_device: 34b. Error handling:\n    - Corruption detection\n    - Key mismatch\n    - Protocol violation\n    - Security alert\n    - Recovery attempt
+    
+    bob_device -> bob: 35b. Decryption error\n(security warning)
+    activate bob
+    
+    bob_device -> audit: 36b. Log security event\n(decryption failure)
+    activate audit
+    
+    audit -> audit: 37b. Security logging:\n    - Error type\n    - Message details\n    - Device information\n    - Timestamp\n    - Potential causes
+    
+    deactivate audit
+    deactivate bob
+end
+
+deactivate bob_device
+deactivate alice_device
+
+== Key Rotation and Forward Secrecy ==
+
+alice_device -> alice_device: 40. Automatic key rotation\n(periodic update)
+activate alice_device
+
+alice_device -> alice_device: 41. Ratchet advancement:\n- Generate new ephemeral key\n- Derive new chain key\n- Update message keys\n- Delete old keys\n- Maintain forward secrecy
+
+alice_device -> keymgmt: 42. Update prekeys\n(key refresh)
+activate keymgmt
+
+keymgmt -> keymgmt: 43. Key management:\n- Validate new keys\n- Replace expired keys\n- Maintain key pool\n- Update signatures\n- Distribute changes
+
+keymgmt --> alice_device: 44. Keys updated\n(rotation complete)
+deactivate keymgmt
+deactivate alice_device
+
+== Group Messaging ==
+
+alice -> alice_device: 45. Create group chat\n(multi-party messaging)
+activate alice_device
+
+alice_device -> alice_device: 46. Group key generation:\n- Sender keys protocol\n- Group master key\n- Member key derivation\n- Signature chains\n- Access control
+
+loop Group Members
+    alice_device -> keymgmt: 47. Fetch member keys\n(each participant)
+    activate keymgmt
+    
+    keymgmt --> alice_device: 48. Member key bundle\n(encryption keys)
+    deactivate keymgmt
+    
+    alice_device -> alice_device: 49. Member setup:\n    - Individual sessions\n    - Group key distribution\n    - Access permissions\n    - Signature verification\n    - Trust establishment
+end
+
+alice_device -> alice_device: 50. Group message encryption:\n- Encrypt for each member\n- Sender key signatures\n- Group metadata\n- Member authentication\n- Delivery optimization
+
+alice_device -> server: 51. Send group message\n(multiple recipients)
+activate server
+
+server -> server: 52. Group distribution:\n- Fan-out delivery\n- Member notification\n- Delivery tracking\n- Error handling\n- Retry logic
+
+loop Group Members
+    server -> push: 53. Notify member\n(group message)
+    activate push
+    
+    push -> bob_device: 54. Group notification\n(new group message)
+    activate bob_device
+    
+    bob_device -> server: 55. Fetch group message\n(retrieve ciphertext)
+    
+    server --> bob_device: 56. Encrypted group message\n(member-specific)
+    
+    bob_device -> bob_device: 57. Group decryption:\n    - Sender verification\n    - Group key validation\n    - Message decryption\n    - Signature checking\n    - Content display
+    
+    bob_device -> bob: 58. Display group message\n(decrypted content)
+    activate bob
+    
+    deactivate bob
+    deactivate bob_device
+    deactivate push
+end
+
+deactivate server
+deactivate alice_device
+
+== Message Backup and Recovery ==
+
+alice_device -> backup: 59. Encrypted backup\n(optional feature)
+activate alice_device
+activate backup
+
+backup -> backup: 60. Backup encryption:\n- User-controlled keys\n- Client-side encryption\n- Zero-knowledge backup\n- Recovery procedures\n- Access controls
+
+backup -> backup: 61. Backup storage:\n- Encrypted message history\n- Key material backup\n- Metadata protection\n- Versioning\n- Retention policies
+
+backup --> alice_device: 62. Backup complete\n(data secured)
+deactivate backup
+
+alt Device Recovery
+    alice -> alice_device: 63a. Restore from backup\n(new device setup)
+    
+    alice_device -> backup: 64a. Request backup\n(authenticated access)
+    activate backup
+    
+    backup -> backup: 65a. Access validation:\n    - User authentication\n    - Device verification\n    - Backup key validation\n    - Permission checking\n    - Audit logging
+    
+    backup --> alice_device: 66a. Encrypted backup\n(restore data)
+    deactivate backup
+    
+    alice_device -> alice_device: 67a. Backup decryption:\n    - User key derivation\n    - Backup decryption\n    - Message restoration\n    - Key reconstruction\n    - State recovery
+    
+    alice_device -> alice: 68a. Messages restored\n(recovery complete)
+    activate alice
+    
+    deactivate alice
+end
+
+deactivate alice_device
+
+== Security Verification ==
+
+alice -> alice_device: 69. Verify Bob's identity\n(safety numbers)
+activate alice_device
+
+alice_device -> alice_device: 70. Generate safety number:\n- Combine identity keys\n- Cryptographic hash\n- Human-readable format\n- QR code generation\n- Verification protocol
+
+alice_device -> alice: 71. Display safety number\n(verification code)
+activate alice
+
+alice -> bob: 72. Compare safety numbers\n(out-of-band verification)
+activate bob
+
+bob -> bob_device: 73. Show safety number\n(Bob's verification)
+activate bob_device
+
+bob_device --> bob: 74. Bob's safety number\n(verification code)
+deactivate bob_device
+
+bob --> alice: 75. Numbers match\n(identity verified)
+deactivate bob
+
+alice -> alice_device: 76. Mark as verified\n(trust established)
+
+alice_device -> alice_device: 77. Update trust status:\n- Mark conversation verified\n- Enable verification indicators\n- Update security warnings\n- Log verification event\n- Enhance security posture
+
+deactivate alice
+deactivate alice_device
+
+== Disappearing Messages ==
+
+alice -> alice_device: 78. Enable disappearing messages\n(ephemeral messaging)
+activate alice_device
+
+alice_device -> alice_device: 79. Configure timer:\n- Message lifetime\n- Auto-deletion\n- Notification settings\n- Sync across devices\n- Security enforcement
+
+alice_device -> server: 80. Send ephemeral message\n(with timer metadata)
+activate server
+
+server -> bob_device: 81. Deliver timed message\n(ephemeral content)
+activate bob_device
+
+bob_device -> bob_device: 82. Start deletion timer:\n- Message display\n- Timer countdown\n- Secure deletion\n- Memory clearing\n- Storage cleanup
+
+bob_device -> bob: 83. Display message\n(with timer indicator)
+activate bob
+
+deactivate bob
+
+bob_device -> bob_device: 84. Auto-delete message:\n- Timer expiration\n- Secure erasure\n- Memory overwrite\n- Storage cleanup\n- Deletion confirmation
+
+deactivate bob_device
+deactivate server
+deactivate alice_device
+
+note right of alice_device
+  Encryption Features:
+  - Signal Protocol (Double Ratchet)
+  - Perfect Forward Secrecy
+  - Post-Compromise Security
+  - Deniable Authentication
+  - Metadata Protection
+end note
+
+note right of keymgmt
+  Key Management:
+  - X3DH key agreement
+  - Prekey distribution
+  - Key rotation
+  - Identity verification
+  - Trust establishment
+end note
+
+note left of server
+  Server Properties:
+  - Zero-knowledge architecture
+  - Metadata minimization
+  - Message relay only
+  - No plaintext access
+  - Minimal data retention
+end note
+
+note left of audit
+  Security Logging:
+  - Metadata only
+  - No message content
+  - Delivery tracking
+  - Security events
+  - Compliance records
+end note
+
+@enduml

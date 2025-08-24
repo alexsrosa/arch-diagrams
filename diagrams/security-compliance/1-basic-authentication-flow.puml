@@ -1,0 +1,57 @@
+@startuml
+!theme plain
+title Basic Authentication Flow
+
+actor "Client" as client
+participant "Authentication Server" as auth
+participant "Application Server" as app
+database "User Database" as db
+
+note over client, db
+  Basic authentication flow where client sends
+  credentials to server for validation
+end note
+
+client -> auth: 1. Send login request\n(username, password)
+activate auth
+
+auth -> db: 2. Query user credentials
+activate db
+db --> auth: 3. Return user data
+deactivate db
+
+alt Valid credentials
+    auth -> auth: 4. Validate password
+    auth --> client: 5. Authentication successful\n(session ID or token)
+    
+    client -> app: 6. Access protected resource\n(with session ID)
+    activate app
+    
+    app -> auth: 7. Validate session
+    auth --> app: 8. Session valid
+    
+    app --> client: 9. Return protected data
+    deactivate app
+    
+else Invalid credentials
+    auth --> client: 5. Authentication failed\n(401 Unauthorized)
+end
+
+deactivate auth
+
+note right of auth
+  Security considerations:
+  - Passwords should be hashed
+  - Use HTTPS for transmission
+  - Implement rate limiting
+  - Log authentication attempts
+end note
+
+note right of client
+  Client responsibilities:
+  - Secure credential storage
+  - Handle authentication errors
+  - Manage session lifecycle
+end note
+
+@enduml

@@ -1,0 +1,153 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+TITLE Serverless Integration with Kubernetes
+
+Person(user, "User", "Application user")
+Person(developer, "Developer", "Application developer")
+Person(admin, "Admin", "System administrator")
+
+System_Boundary(api_gateway, "API Gateway Layer") {
+  Container(api_gateway_svc, "API Gateway", "Kong/Ambassador", "Request routing and authentication")
+  Container(rate_limiter, "Rate Limiter", "Redis-based", "API rate limiting")
+  Container(auth_service, "Auth Service", "OAuth2/JWT", "Authentication and authorization")
+}
+
+System_Boundary(k8s_cluster, "Kubernetes Cluster") {
+  System_Boundary(apps_ns, "Applications Namespace") {
+    Container(ingress_ctrl, "Ingress Controller", "Nginx Ingress", "Traffic routing")
+    
+    Container(user_svc, "User Service", "ClusterIP", "Core user management")
+    Container(user_pods, "User Pods", "Java, Spring Boot\nStateless (3 replicas)", "User operations")
+    
+    Container(product_svc, "Product Service", "ClusterIP", "Product catalog")
+    Container(product_pods, "Product Pods", "Go, Gin\nStateless (3 replicas)", "Product management")
+    
+    Container(order_svc, "Order Service", "ClusterIP", "Order processing")
+    Container(order_pods, "Order Pods", "Java, Spring Boot\nStateless (3 replicas)", "Order operations")
+  }
+  
+  System_Boundary(serverless_ns, "Serverless Namespace") {
+    Container(knative_serving, "Knative Serving", "Serverless Platform", "Serverless workload management")
+    Container(knative_eventing, "Knative Eventing", "Event System", "Event-driven serverless")
+    Container(tekton_pipelines, "Tekton Pipelines", "CI/CD Platform", "Serverless build pipelines")
+    
+    Container(image_processor, "Image Processor", "Knative Service", "Serverless image processing")
+    Container(email_sender, "Email Sender", "Knative Service", "Serverless email notifications")
+    Container(report_generator, "Report Generator", "Knative Service", "Serverless report generation")
+    Container(data_transformer, "Data Transformer", "Knative Service", "Serverless data processing")
+  }
+  
+  System_Boundary(storage_ns, "Storage Namespace") {
+    ContainerDb(user_db, "User Database", "PostgreSQL\nStatefulSet", "User data persistence")
+    ContainerDb(product_db, "Product Database", "MongoDB\nStatefulSet", "Product catalog")
+    ContainerDb(order_db, "Order Database", "PostgreSQL\nStatefulSet", "Order data")
+    Container(redis_cache, "Redis Cache", "Redis Cluster", "Caching layer")
+  }
+}
+
+System_Boundary(cloud_functions, "Cloud Functions") {
+  Container(aws_lambda, "AWS Lambda", "Function as a Service", "Cloud-native serverless functions")
+  Container(azure_functions, "Azure Functions", "Function as a Service", "Azure serverless functions")
+  Container(gcp_functions, "Google Cloud Functions", "Function as a Service", "GCP serverless functions")
+  
+  Container(payment_processor, "Payment Processor", "AWS Lambda", "Payment processing logic")
+  Container(fraud_detector, "Fraud Detector", "Azure Functions", "ML-based fraud detection")
+  Container(inventory_updater, "Inventory Updater", "GCP Functions", "Real-time inventory updates")
+  Container(analytics_aggregator, "Analytics Aggregator", "AWS Lambda", "Data analytics processing")
+}
+
+System_Boundary(event_system, "Event-Driven System") {
+  Container(kafka_cluster, "Kafka Cluster", "Event Streaming", "Event backbone")
+  Container(eventbridge, "AWS EventBridge", "Event Router", "Cloud event routing")
+  Container(azure_event_grid, "Azure Event Grid", "Event Router", "Azure event routing")
+  Container(pubsub, "Google Pub/Sub", "Message Queue", "GCP messaging")
+  
+  Container(event_router, "Event Router", "Custom Service", "Cross-platform event routing")
+  Container(dead_letter_queue, "Dead Letter Queue", "SQS/Service Bus", "Failed event handling")
+}
+
+System_Boundary(storage_services, "Storage Services") {
+  Container(s3_bucket, "S3 Bucket", "Object Storage", "File and media storage")
+  Container(azure_blob, "Azure Blob Storage", "Object Storage", "Azure file storage")
+  Container(gcs_bucket, "Google Cloud Storage", "Object Storage", "GCP file storage")
+  
+  Container(dynamodb, "DynamoDB", "NoSQL Database", "Serverless database")
+  Container(cosmos_db, "Cosmos DB", "NoSQL Database", "Azure serverless database")
+  Container(firestore, "Firestore", "NoSQL Database", "GCP serverless database")
+}
+
+System_Boundary(monitoring_serverless, "Serverless Monitoring") {
+  Container(cloudwatch, "CloudWatch", "AWS Monitoring", "Lambda monitoring")
+  Container(azure_monitor, "Azure Monitor", "Azure Monitoring", "Functions monitoring")
+  Container(stackdriver, "Cloud Monitoring", "GCP Monitoring", "GCP functions monitoring")
+  
+  Container(serverless_dashboard, "Serverless Dashboard", "Grafana", "Unified serverless metrics")
+  Container(distributed_tracing, "Distributed Tracing", "Jaeger/X-Ray", "Cross-platform tracing")
+}
+
+System_Boundary(workflow_orchestration, "Workflow Orchestration") {
+  Container(step_functions, "AWS Step Functions", "Workflow Engine", "AWS serverless workflows")
+  Container(logic_apps, "Azure Logic Apps", "Workflow Engine", "Azure serverless workflows")
+  Container(workflows, "Google Workflows", "Workflow Engine", "GCP serverless workflows")
+  
+  Container(argo_workflows, "Argo Workflows", "Kubernetes Workflows", "K8s-native workflows")
+}
+
+Rel(user, api_gateway_svc, "API requests", "HTTPS")
+Rel(api_gateway_svc, auth_service, "Authentication", "HTTP")
+Rel(api_gateway_svc, rate_limiter, "Rate limiting", "Redis Protocol")
+Rel(api_gateway_svc, ingress_ctrl, "Routes to K8s", "HTTP")
+Rel(api_gateway_svc, aws_lambda, "Routes to Lambda", "HTTP")
+Rel(api_gateway_svc, azure_functions, "Routes to Functions", "HTTP")
+Rel(ingress_ctrl, user_svc, "User requests", "HTTP")
+Rel(ingress_ctrl, product_svc, "Product requests", "HTTP")
+Rel(ingress_ctrl, order_svc, "Order requests", "HTTP")
+Rel(user_pods, user_db, "User data", "JDBC/SQL")
+Rel(product_pods, product_db, "Product data", "MongoDB Protocol")
+Rel(order_pods, order_db, "Order data", "JDBC/SQL")
+Rel(order_pods, kafka_cluster, "Order events", "Kafka Protocol")
+Rel(user_pods, kafka_cluster, "User events", "Kafka Protocol")
+Rel(product_pods, kafka_cluster, "Product events", "Kafka Protocol")
+Rel(kafka_cluster, event_router, "Event distribution", "Kafka Protocol")
+Rel(event_router, eventbridge, "AWS events", "HTTP")
+Rel(event_router, azure_event_grid, "Azure events", "HTTP")
+Rel(event_router, pubsub, "GCP events", "HTTP")
+Rel(eventbridge, payment_processor, "Payment events", "Lambda Trigger")
+Rel(eventbridge, analytics_aggregator, "Analytics events", "Lambda Trigger")
+Rel(azure_event_grid, fraud_detector, "Fraud events", "Function Trigger")
+Rel(pubsub, inventory_updater, "Inventory events", "Function Trigger")
+Rel(knative_eventing, image_processor, "Image events", "CloudEvents")
+Rel(knative_eventing, email_sender, "Email events", "CloudEvents")
+Rel(knative_eventing, report_generator, "Report events", "CloudEvents")
+Rel(knative_eventing, data_transformer, "Data events", "CloudEvents")
+Rel(kafka_cluster, knative_eventing, "K8s events", "CloudEvents")
+Rel(payment_processor, dynamodb, "Payment data", "DynamoDB API")
+Rel(fraud_detector, cosmos_db, "Fraud data", "Cosmos DB API")
+Rel(inventory_updater, firestore, "Inventory data", "Firestore API")
+Rel(image_processor, s3_bucket, "Processed images", "S3 API")
+Rel(report_generator, azure_blob, "Generated reports", "Blob API")
+Rel(data_transformer, gcs_bucket, "Transformed data", "GCS API")
+Rel(order_pods, step_functions, "Order workflow", "Step Functions API")
+Rel(step_functions, payment_processor, "Payment step", "Lambda Invoke")
+Rel(step_functions, inventory_updater, "Inventory step", "Function Invoke")
+Rel(user_pods, logic_apps, "User workflow", "Logic Apps API")
+Rel(logic_apps, email_sender, "Email step", "HTTP")
+Rel(product_pods, workflows, "Product workflow", "Workflows API")
+Rel(workflows, data_transformer, "Transform step", "Function Invoke")
+Rel(tekton_pipelines, argo_workflows, "K8s workflows", "Kubernetes API")
+Rel(argo_workflows, knative_serving, "Deploy serverless", "Knative API")
+Rel(cloudwatch, aws_lambda, "Monitors functions", "CloudWatch API")
+Rel(azure_monitor, azure_functions, "Monitors functions", "Monitor API")
+Rel(stackdriver, gcp_functions, "Monitors functions", "Monitoring API")
+Rel(serverless_dashboard, cloudwatch, "AWS metrics", "CloudWatch API")
+Rel(serverless_dashboard, azure_monitor, "Azure metrics", "Monitor API")
+Rel(serverless_dashboard, stackdriver, "GCP metrics", "Monitoring API")
+Rel(distributed_tracing, aws_lambda, "Traces functions", "X-Ray")
+Rel(distributed_tracing, knative_serving, "Traces K8s functions", "Jaeger")
+Rel(event_router, dead_letter_queue, "Failed events", "SQS/Service Bus")
+Rel(developer, tekton_pipelines, "Deploys functions", "Git Push")
+Rel(admin, serverless_dashboard, "Monitors serverless", "HTTPS")
+Rel(admin, knative_serving, "Manages K8s serverless", "kubectl")
+@enduml

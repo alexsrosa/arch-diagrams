@@ -1,0 +1,112 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Enterprise Messaging Bus (ESB) Pattern
+
+!define RECTANGLE class
+
+RECTANGLE "Producer A" as ProducerA {
+  + CRM System
+  + customerEvents()
+}
+
+RECTANGLE "Producer B" as ProducerB {
+  + ERP System
+  + orderEvents()
+}
+
+RECTANGLE "Producer C" as ProducerC {
+  + Inventory System
+  + stockEvents()
+}
+
+RECTANGLE "Enterprise Service Bus" as ESB {
+  + messageRouting()
+  + protocolTransformation()
+  + contentTransformation()
+  + messageEnrichment()
+  + errorHandling()
+}
+
+RECTANGLE "Message Router" as MessageRouter {
+  + routingRules()
+  + contentBasedRouting()
+  + loadBalancing()
+}
+
+RECTANGLE "Message Transformer" as MessageTransformer {
+  + formatConversion()
+  + protocolAdaptation()
+  + dataMapping()
+}
+
+RECTANGLE "Message Monitor" as MessageMonitor {
+  + trackMessages()
+  + performanceMetrics()
+  + alerting()
+}
+
+RECTANGLE "Consumer A" as ConsumerA {
+  + Analytics Service
+  + processCustomerData()
+}
+
+RECTANGLE "Consumer B" as ConsumerB {
+  + Notification Service
+  + sendNotifications()
+}
+
+RECTANGLE "Consumer C" as ConsumerC {
+  + Reporting Service
+  + generateReports()
+}
+
+RECTANGLE "Consumer D" as ConsumerD {
+  + Audit Service
+  + logTransactions()
+}
+
+ProducerA --> ESB : "Customer Events\n[CRM Protocol]"
+ProducerB --> ESB : "Order Events\n[ERP Protocol]"
+ProducerC --> ESB : "Stock Events\n[Inventory Protocol]"
+ESB --> MessageRouter : "Route Messages\n[Rule-based]"
+ESB --> MessageTransformer : "Transform\n[Protocol/Format]"
+ESB --> MessageMonitor : "Monitor\n[Track & Alert]"
+MessageRouter --> ConsumerA : "Customer Data\n[Analytics Format]"
+MessageRouter --> ConsumerB : "Notifications\n[Standard Format]"
+MessageRouter --> ConsumerC : "Report Data\n[Reporting Format]"
+MessageRouter --> ConsumerD : "Audit Logs\n[Audit Format]"
+
+note right of ESB
+  ESB acts as central hub
+  providing:
+  - Protocol mediation
+  - Message transformation
+  - Routing and orchestration
+  - Monitoring and governance
+end note
+
+note top of MessageRouter
+  Router applies business rules
+  to determine message
+  destinations based on
+  content, headers, or context
+end note
+
+note left of MessageTransformer
+  Transformer handles:
+  - Data format conversion
+  - Protocol adaptation
+  - Message enrichment
+  - Schema validation
+end note
+
+note bottom of MessageMonitor
+  Monitor provides:
+  - End-to-end visibility
+  - Performance tracking
+  - Error detection
+  - SLA monitoring
+end note
+
+@enduml

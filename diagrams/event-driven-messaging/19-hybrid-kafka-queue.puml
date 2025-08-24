@@ -1,0 +1,90 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Hybrid Kafka + Queue Pattern
+
+!define RECTANGLE class
+
+RECTANGLE "Producer Service" as Producer {
+  + produceMessage()
+  + routeToKafka()
+  + routeToQueue()
+}
+
+RECTANGLE "Kafka Cluster" as KafkaCluster {
+  + topics: ["user-events", "analytics"]
+  + partitions: 3
+  + streamProcessing: true
+}
+
+RECTANGLE "Message Queue" as MessageQueue {
+  + transactionalQueue
+  + guaranteedDelivery: true
+  + ACID: true
+}
+
+RECTANGLE "Stream Processor" as StreamProcessor {
+  + processStream()
+  + aggregateData()
+  + realTimeAnalytics()
+}
+
+RECTANGLE "Analytics Service" as AnalyticsService {
+  + generateReports()
+  + processMetrics()
+  + streamingData: true
+}
+
+RECTANGLE "Transaction Processor" as TransactionProcessor {
+  + processTransaction()
+  + ensureACID()
+  + handleFailures()
+}
+
+RECTANGLE "Payment Service" as PaymentService {
+  + processPayment()
+  + transactionalGuarantees: true
+  + criticalOperations: true
+}
+
+RECTANGLE "Data Lake" as DataLake {
+  + historicalData
+  + batchProcessing
+  + longTermStorage
+}
+
+Producer --> KafkaCluster : "Stream Events\n[High Throughput]"
+Producer --> MessageQueue : "Transactional Messages\n[ACID Guarantees]"
+KafkaCluster --> StreamProcessor : "Real-time Stream\n[Low Latency]"
+StreamProcessor --> AnalyticsService : "Processed Data\n[Analytics]"
+StreamProcessor --> DataLake : "Archive Data\n[Batch Storage]"
+MessageQueue --> TransactionProcessor : "Critical Messages\n[Guaranteed Delivery]"
+TransactionProcessor --> PaymentService : "Payment Processing\n[Transactional]"
+
+note right of Producer
+  Producer intelligently routes
+  messages based on requirements:
+  - Kafka for streaming/analytics
+  - Queue for transactional processing
+end note
+
+note top of KafkaCluster
+  Kafka handles high-throughput
+  streaming data for real-time
+  analytics and event processing
+end note
+
+note left of MessageQueue
+  Traditional queue ensures
+  ACID properties for critical
+  business transactions
+end note
+
+note bottom of StreamProcessor
+  Hybrid approach combines
+  benefits of both systems:
+  streaming performance +
+  transactional guarantees
+end note
+
+@enduml

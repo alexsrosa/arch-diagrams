@@ -1,0 +1,45 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Producer with Queue Pattern
+
+!define RECTANGLE class
+
+RECTANGLE Producer {
+  + produceMessage()
+  + sendToQueue()
+}
+
+RECTANGLE Queue {
+  + enqueue(message)
+  + dequeue()
+  + size()
+}
+
+RECTANGLE Consumer {
+  + pullFromQueue()
+  + processMessage()
+}
+
+Producer --> Queue : "Send Message\n[Asynchronous]"
+Queue --> Consumer : "Pull Message\n[On Demand]"
+
+note right of Producer
+  Produces messages and
+  sends them to the queue
+  for later consumption
+end note
+
+note top of Queue
+  FIFO Queue stores messages
+  until consumers are ready
+  to process them
+end note
+
+note left of Consumer
+  Pulls messages from queue
+  at its own pace and
+  processes them
+end note
+
+@enduml

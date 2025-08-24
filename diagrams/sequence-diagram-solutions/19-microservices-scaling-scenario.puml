@@ -1,0 +1,61 @@
+@startuml
+actor Client
+participant "Load Balancer" as LB
+participant "Order Service #1"    as OS1
+participant "Order Service #2"    as OS2
+participant "Inventory Service #1" as IS1
+participant "Inventory Service #2" as IS2
+participant "Payment Service #1"  as PS1
+participant "Payment Service #2"  as PS2
+
+== Order Request ==
+Client -> LB : GET /api/orders
+activate LB
+alt route to Order Service #1
+  LB -> OS1 : GET /api/orders
+  activate OS1
+  OS1 --> LB : 200 OK { orders }
+  deactivate OS1
+else route to Order Service #2
+  LB -> OS2 : GET /api/orders
+  activate OS2
+  OS2 --> LB : 200 OK { orders }
+  deactivate OS2
+end
+LB --> Client : 200 OK { orders }
+deactivate LB
+
+== Inventory Request ==
+Client -> LB : GET /api/inventory
+activate LB
+alt route to Inventory Service #1
+  LB -> IS1 : GET /api/inventory
+  activate IS1
+  IS1 --> LB : 200 OK { inventory }
+  deactivate IS1
+else route to Inventory Service #2
+  LB -> IS2 : GET /api/inventory
+  activate IS2
+  IS2 --> LB : 200 OK { inventory }
+  deactivate IS2
+end
+LB --> Client : 200 OK { inventory }
+deactivate LB
+
+== Payment Request ==
+Client -> LB : POST /api/payments
+activate LB
+alt route to Payment Service #1
+  LB -> PS1 : POST /api/payments
+  activate PS1
+  PS1 --> LB : 201 Created { payment confirmation }
+  deactivate PS1
+else route to Payment Service #2
+  LB -> PS2 : POST /api/payments
+  activate PS2
+  PS2 --> LB : 201 Created { payment confirmation }
+  deactivate PS2
+end
+LB --> Client : 201 Created { payment confirmation }
+deactivate LB
+@enduml

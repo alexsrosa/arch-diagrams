@@ -1,0 +1,144 @@
+@startuml
+!theme plain
+title Audit Logging and Compliance Review Process
+
+actor "User" as user
+participant "Application" as app
+participant "Audit Logger" as logger
+participant "Log Aggregator" as aggregator
+database "Secure Audit Store" as auditdb
+participant "Log Analysis Engine" as analyzer
+participant "Compliance Dashboard" as dashboard
+actor "Compliance Officer" as officer
+
+note over user, officer
+  Comprehensive audit logging system for
+  security compliance and forensic analysis
+end note
+
+== User Action and Logging ==
+
+user -> app: 1. Perform sensitive action\n(login, data access, config change)
+activate app
+
+app -> app: 2. Process user request
+
+app -> logger: 3. Generate audit event\n(user_id, action, resource, timestamp)
+activate logger
+
+logger -> logger: 4. Enrich audit data:\n- IP address\n- User agent\n- Session ID\n- Risk score
+
+logger -> logger: 5. Apply data classification\n(PII masking, sensitivity level)
+
+logger -> aggregator: 6. Send audit log\n(structured JSON format)
+activate aggregator
+deactivate logger
+
+app --> user: 7. Action completed\n(response to user)
+deactivate app
+
+== Log Processing and Storage ==
+
+aggregator -> aggregator: 8. Validate log format\nand integrity
+
+aggregator -> aggregator: 9. Apply retention policies\n(based on data type)
+
+aggregator -> auditdb: 10. Store audit log\n(encrypted, immutable)
+activate auditdb
+auditdb --> aggregator: 11. Log stored with hash
+deactivate auditdb
+
+aggregator -> analyzer: 12. Forward for analysis\n(real-time processing)
+activate analyzer
+deactivate aggregator
+
+== Real-time Analysis ==
+
+analyzer -> analyzer: 13. Pattern analysis:\n- Anomaly detection\n- Risk assessment\n- Compliance checks
+
+alt Suspicious Activity Detected
+    analyzer -> dashboard: 14a. Generate alert\n(high-risk activity)
+    activate dashboard
+    dashboard -> officer: 15a. Send notification\n(email/SMS alert)
+    deactivate dashboard
+else Normal Activity
+    analyzer -> analyzer: 14b. Update metrics\n(compliance scores)
+end
+
+deactivate analyzer
+
+== Compliance Review Process ==
+
+officer -> dashboard: 16. Access compliance dashboard
+activate dashboard
+activate officer
+
+dashboard -> auditdb: 17. Query audit logs\n(filtered by criteria)
+activate auditdb
+auditdb --> dashboard: 18. Audit trail data\n(user actions, timestamps)
+deactivate auditdb
+
+dashboard -> dashboard: 19. Generate reports:\n- Access patterns\n- Policy violations\n- Risk assessments
+
+dashboard --> officer: 20. Display audit reports\n(charts, tables, alerts)
+
+officer -> officer: 21. Review findings:\n- Investigate anomalies\n- Verify compliance\n- Document issues
+
+alt Compliance Issue Found
+    officer -> dashboard: 22a. Create incident\n(violation details)
+    dashboard -> app: 23a. Trigger remediation\n(disable account, alert admin)
+    activate app
+    app --> dashboard: 24a. Action confirmed
+    deactivate app
+else Compliance Satisfied
+    officer -> dashboard: 22b. Mark as reviewed\n(compliance approved)
+end
+
+deactivate dashboard
+deactivate officer
+
+== Audit Trail Integrity ==
+
+auditdb -> auditdb: 25. Periodic integrity check\n(hash verification)
+
+auditdb -> auditdb: 26. Backup audit logs\n(to secure archive)
+
+note right of logger
+  Audit Event Types:
+  - Authentication events
+  - Authorization decisions
+  - Data access/modifications
+  - Configuration changes
+  - Administrative actions
+  - System errors/failures
+end note
+
+note right of auditdb
+  Security Features:
+  - Encryption at rest
+  - Immutable storage
+  - Digital signatures
+  - Access controls
+  - Retention policies
+  - Geographic replication
+end note
+
+note left of officer
+  Compliance Requirements:
+  - SOX (financial data)
+  - HIPAA (healthcare)
+  - GDPR (personal data)
+  - PCI-DSS (payment data)
+  - SOC 2 (security controls)
+end note
+
+note over analyzer, dashboard
+  Analysis Capabilities:
+  - Real-time monitoring
+  - Behavioral analytics
+  - Threat detection
+  - Compliance scoring
+  - Automated reporting
+end note
+
+@enduml

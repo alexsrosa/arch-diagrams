@@ -1,0 +1,78 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Retry with Backoff Pattern
+
+!define RECTANGLE class
+
+RECTANGLE "Main Queue" as MainQueue {
+  + enqueue(message)
+  + dequeue()
+}
+
+RECTANGLE Consumer {
+  + pullFromQueue()
+  + processMessage()
+  + handleFailure()
+  + retryLogic()
+}
+
+RECTANGLE "Retry Handler" as RetryHandler {
+  + calculateBackoff()
+  + scheduleRetry()
+  + trackAttempts()
+  + maxRetries: 3
+}
+
+RECTANGLE "Retry Queue" as RetryQueue {
+  + delayedEnqueue()
+  + scheduleDelivery()
+  + backoffIntervals: [1s, 2s, 4s]
+}
+
+RECTANGLE "Dead Letter Queue" as DLQ {
+  + storeFailed(message)
+  + finalDestination()
+}
+
+RECTANGLE "Backoff Strategy" as BackoffStrategy {
+  + Attempt 1: 1 second delay
+  + Attempt 2: 2 seconds delay
+  + Attempt 3: 4 seconds delay
+  + After 3 attempts: Send to DLQ
+}
+
+MainQueue --> Consumer : "Pull Message\n[Initial Attempt]"
+Consumer --> RetryHandler : "Handle Failure\n[Processing Error]"
+RetryHandler --> RetryQueue : "Schedule Retry\n[with Exponential Backoff]"
+RetryQueue --> Consumer : "Retry Message\n[After Delay]"
+RetryHandler --> DLQ : "Send to DLQ\n[After Max Retries]"
+RetryHandler --> BackoffStrategy : "Apply Strategy"
+
+note right of Consumer
+  Consumer attempts to process
+  message and triggers retry
+  mechanism on failure
+end note
+
+note top of RetryHandler
+  Retry handler implements
+  exponential backoff strategy
+  to avoid overwhelming
+  failing services
+end note
+
+note left of RetryQueue
+  Retry queue delays message
+  redelivery based on
+  backoff calculation
+end note
+
+note bottom of DLQ
+  Messages that fail after
+  maximum retry attempts
+  are sent to DLQ for
+  manual investigation
+end note
+
+@enduml

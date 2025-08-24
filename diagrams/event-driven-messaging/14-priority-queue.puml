@@ -1,0 +1,73 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Priority Queue Pattern
+
+!define RECTANGLE class
+
+RECTANGLE Producer {
+  + produceMessage()
+  + setPriority()
+  + sendToPriorityQueue()
+}
+
+RECTANGLE "Priority Queue" as PriorityQueue {
+  + enqueue(message, priority)
+  + dequeue()
+  + sortByPriority()
+  + priorities: [CRITICAL, HIGH, NORMAL, LOW]
+}
+
+RECTANGLE "Queue Internal Structure" as QueueStructure {
+  + criticalMessages: []
+  + highMessages: []
+  + normalMessages: []
+  + lowMessages: []
+}
+
+RECTANGLE Consumer {
+  + pullFromQueue()
+  + processMessage()
+  + handleByPriority()
+}
+
+RECTANGLE "Processing Order" as ProcessingOrder {
+  + 1. CRITICAL (Priority 1)
+  + 2. HIGH (Priority 2)
+  + 3. NORMAL (Priority 3)
+  + 4. LOW (Priority 4)
+}
+
+Producer --> PriorityQueue : "Send Messages\n[with Priority Level]"
+PriorityQueue --> QueueStructure : "Organize\n[by Priority]"
+QueueStructure --> Consumer : "Dequeue\n[Highest Priority First]"
+Consumer --> ProcessingOrder : "Process\n[Priority Order]"
+
+note right of Producer
+  Producer assigns priority
+  levels to messages based
+  on business importance
+  (CRITICAL, HIGH, NORMAL, LOW)
+end note
+
+note top of PriorityQueue
+  Priority queue maintains
+  separate internal queues
+  for each priority level
+end note
+
+note left of Consumer
+  Consumer always processes
+  highest priority messages
+  first, ensuring critical
+  tasks are handled immediately
+end note
+
+note bottom of ProcessingOrder
+  Processing order ensures
+  business-critical messages
+  are never delayed by
+  lower priority traffic
+end note
+
+@enduml

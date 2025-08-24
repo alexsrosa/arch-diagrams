@@ -1,0 +1,104 @@
+@startuml
+!theme plain
+title OAuth2 Authorization Code Flow
+
+actor "Resource Owner\n(User)" as user
+participant "Client Application\n(Third-party App)" as client
+participant "Authorization Server\n(OAuth Provider)" as auth
+participant "Resource Server\n(API Server)" as api
+
+note over user, api
+  OAuth2 Authorization Code Flow - most secure flow
+  for web applications with server-side components
+end note
+
+== Authorization Request ==
+
+user -> client: 1. User wants to access\nprotected resource
+activate client
+
+client --> user: 2. Redirect to authorization server\n(client_id, redirect_uri, scope, state)
+deactivate client
+
+user -> auth: 3. Authorization request\n(GET /authorize?client_id=...&scope=...)
+activate auth
+
+auth --> user: 4. Show login page\n(if not authenticated)
+
+user -> auth: 5. User login\n(username, password)
+
+auth --> user: 6. Show consent page\n("App X wants to access Y")
+
+user -> auth: 7. User grants permission\n(approve/deny)
+
+== Authorization Response ==
+
+auth --> user: 8. Redirect to client\n(code=ABC123&state=xyz)
+deactivate auth
+
+user -> client: 9. Authorization code\n(via redirect)
+activate client
+
+== Token Exchange ==
+
+client -> auth: 10. Exchange code for token\n(POST /token)\n(code, client_id, client_secret)
+activate auth
+
+auth -> auth: 11. Validate:\n- Authorization code\n- Client credentials\n- Redirect URI
+
+auth --> client: 12. Access token response\n(access_token, refresh_token, expires_in)
+deactivate auth
+
+== Resource Access ==
+
+client -> api: 13. API request\n(Authorization: Bearer <access_token>)
+activate api
+
+api -> auth: 14. Validate access token\n(introspection or JWT validation)
+activate auth
+auth --> api: 15. Token valid + scope info
+deactivate auth
+
+api -> api: 16. Check permissions\n(scope vs requested resource)
+
+api --> client: 17. Protected resource data\n(JSON response)
+deactivate api
+
+client --> user: 18. Display data to user
+deactivate client
+
+== Token Refresh (Optional) ==
+
+client -> auth: 19. Refresh token request\n(refresh_token, client_id, client_secret)
+activate auth
+activate client
+
+auth --> client: 20. New access token\n(access_token, expires_in)
+deactivate auth
+deactivate client
+
+note right of auth
+  Security Features:
+  - Short-lived authorization codes (10 min)
+  - Client authentication required
+  - State parameter prevents CSRF
+  - PKCE extension for public clients
+end note
+
+note right of api
+  Resource Server:
+  - Validates access tokens
+  - Enforces scope-based permissions
+  - Rate limiting per client
+  - Audit logging of access
+end note
+
+note left of user
+  User Benefits:
+  - No password sharing with third-party
+  - Granular permission control
+  - Can revoke access anytime
+  - Transparent consent process
+end note
+
+@enduml

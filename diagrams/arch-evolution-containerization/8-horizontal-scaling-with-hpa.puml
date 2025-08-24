@@ -1,0 +1,64 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+TITLE Horizontal Scaling with HPA
+
+Person(user, "User", "Uses a web browser")
+
+System_Boundary(k8s_cluster, "Kubernetes Cluster") {
+  System_Boundary(gateway_ns, "Gateway Namespace") {
+    Container(ingress, "Ingress Controller", "Nginx Ingress", "External traffic entry point")
+    Container(api_gateway, "API Gateway", "Kong\nStateless Pod", "Routes API requests")
+  }
+  
+  System_Boundary(services_ns, "Services Namespace") {
+    Container(user_svc, "User Service", "ClusterIP", "User management")
+    Container(user_pods, "User Pods", "Java, Spring Boot\nAuto-scaling (2-10 replicas)", "Handles user operations")
+    Container(user_hpa, "User HPA", "HorizontalPodAutoscaler", "CPU: 70%, Memory: 80%")
+    
+    Container(product_svc, "Product Service", "ClusterIP", "Product catalog")
+    Container(product_pods, "Product Pods", "Java, Spring Boot\nAuto-scaling (3-15 replicas)", "Manages products")
+    Container(product_hpa, "Product HPA", "HorizontalPodAutoscaler", "CPU: 60%, Memory: 75%")
+    
+    Container(order_svc, "Order Service", "ClusterIP", "Order processing")
+    Container(order_pods, "Order Pods", "Java, Spring Boot\nAuto-scaling (1-8 replicas)", "Processes orders")
+    Container(order_hpa, "Order HPA", "HorizontalPodAutoscaler", "CPU: 80%, Memory: 85%")
+  }
+  
+  System_Boundary(monitoring_ns, "Monitoring Namespace") {
+    Container(metrics_server, "Metrics Server", "Kubernetes Metrics Server", "Collects resource metrics")
+    Container(prometheus, "Prometheus", "Monitoring System", "Scrapes metrics")
+  }
+  
+  System_Boundary(storage_ns, "Storage Namespace") {
+    Container(pv, "Persistent Volume", "Kubernetes PV", "Cluster-wide storage")
+    Container(pvc, "Persistent Volume Claim", "Kubernetes PVC", "Storage request")
+    ContainerDb(db_pod, "Database Pod", "PostgreSQL\nStateful Pod", "Shared database")
+  }
+}
+
+Rel(user, ingress, "Accesses via", "HTTP/HTTPS")
+Rel(ingress, api_gateway, "Routes requests", "HTTP")
+Rel(api_gateway, user_svc, "User requests", "HTTP")
+Rel(api_gateway, product_svc, "Product requests", "HTTP")
+Rel(api_gateway, order_svc, "Order requests", "HTTP")
+Rel(user_svc, user_pods, "Load balances", "HTTP")
+Rel(product_svc, product_pods, "Load balances", "HTTP")
+Rel(order_svc, order_pods, "Load balances", "HTTP")
+Rel(user_hpa, user_pods, "Scales pods", "K8s API")
+Rel(product_hpa, product_pods, "Scales pods", "K8s API")
+Rel(order_hpa, order_pods, "Scales pods", "K8s API")
+Rel(user_hpa, metrics_server, "Reads metrics", "Metrics API")
+Rel(product_hpa, metrics_server, "Reads metrics", "Metrics API")
+Rel(order_hpa, metrics_server, "Reads metrics", "Metrics API")
+Rel(metrics_server, user_pods, "Collects CPU/Memory", "Kubelet API")
+Rel(metrics_server, product_pods, "Collects CPU/Memory", "Kubelet API")
+Rel(metrics_server, order_pods, "Collects CPU/Memory", "Kubelet API")
+Rel(prometheus, metrics_server, "Scrapes metrics", "HTTP")
+Rel(user_pods, db_pod, "User data", "JDBC/SQL")
+Rel(product_pods, db_pod, "Product data", "JDBC/SQL")
+Rel(order_pods, db_pod, "Order data", "JDBC/SQL")
+Rel(db_pod, pvc, "Uses storage", "File System")
+Rel(pvc, pv, "Claims storage", "Storage API")
+@enduml

@@ -1,0 +1,78 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Event-Driven Microservices Pattern
+
+!define RECTANGLE class
+
+RECTANGLE "Microservice A" as MicroserviceA {
+  + processOrder()
+  + publishEvent()
+  + orderCreated()
+}
+
+RECTANGLE "Event Topic" as EventTopic {
+  + name: "order-events"
+  + publish(event)
+  + subscribe(service)
+}
+
+RECTANGLE "Microservice B" as MicroserviceB {
+  + subscribeToEvents()
+  + updateInventory()
+  + onOrderCreated()
+}
+
+RECTANGLE "Microservice C" as MicroserviceC {
+  + subscribeToEvents()
+  + sendNotification()
+  + onOrderCreated()
+}
+
+RECTANGLE "Database A" as DatabaseA {
+  + orders
+  + orderItems
+}
+
+RECTANGLE "Database B" as DatabaseB {
+  + inventory
+  + products
+}
+
+RECTANGLE "Database C" as DatabaseC {
+  + notifications
+  + users
+}
+
+MicroserviceA --> DatabaseA : "Store Order\n[ACID Transaction]"
+MicroserviceA --> EventTopic : "Publish\n[OrderCreated Event]"
+EventTopic --> MicroserviceB : "Notify\n[Async Event]"
+EventTopic --> MicroserviceC : "Notify\n[Async Event]"
+MicroserviceB --> DatabaseB : "Update Inventory\n[Eventual Consistency]"
+MicroserviceC --> DatabaseC : "Store Notification\n[Eventual Consistency]"
+
+note right of MicroserviceA
+  Service A publishes domain
+  events after successful
+  business operations
+end note
+
+note top of EventTopic
+  Event topic decouples
+  microservices and enables
+  loose coupling
+end note
+
+note left of MicroserviceB
+  Services B and C react
+  to events independently
+  without direct coupling
+end note
+
+note bottom of MicroserviceC
+  Each microservice maintains
+  its own database and
+  processes events asynchronously
+end note
+
+@enduml

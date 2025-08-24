@@ -1,0 +1,25 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+TITLE Monolithic Application on Kubernetes
+
+Person(user, "User", "Uses a web browser")
+
+System_Boundary(k8s_cluster, "Kubernetes Cluster") {
+  System_Boundary(k8s_namespace, "Default Namespace") {
+    Container(k8s_service, "Kubernetes Service", "LoadBalancer", "Exposes monolith externally")
+    Container(monolith_pod, "Monolith Pod", "Java, Spring Boot\nKubernetes Pod", "Provides UI and business logic")
+  }
+  
+  System_Boundary(data_namespace, "Data Namespace") {
+    ContainerDb(db_pod, "Database Pod", "PostgreSQL\nKubernetes Pod", "Stores user and application data")
+    Container(pvc, "Persistent Volume", "Kubernetes PVC", "Persistent storage for database")
+  }
+}
+
+Rel(user, k8s_service, "Accesses via", "HTTP/HTTPS")
+Rel(k8s_service, monolith_pod, "Routes traffic", "HTTP")
+Rel(monolith_pod, db_pod, "Reads/Writes", "JDBC/SQL")
+Rel(db_pod, pvc, "Persists data", "File System")
+@enduml

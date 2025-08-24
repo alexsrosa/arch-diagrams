@@ -1,0 +1,114 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+TITLE GitOps with ArgoCD for CI/CD
+
+Person(developer, "Developer", "Application developer")
+Person(devops, "DevOps Engineer", "Infrastructure engineer")
+
+System_Boundary(git_repos, "Git Repositories") {
+  Container(app_repo, "Application Repository", "GitHub/GitLab", "Source code and Dockerfile")
+  Container(config_repo, "Config Repository", "GitHub/GitLab", "Kubernetes manifests and Helm charts")
+  Container(infra_repo, "Infrastructure Repository", "GitHub/GitLab", "Terraform and infrastructure code")
+}
+
+System_Boundary(ci_pipeline, "CI Pipeline") {
+  Container(github_actions, "GitHub Actions", "CI/CD Platform", "Build and test automation")
+  Container(docker_registry, "Container Registry", "Docker Hub/ECR", "Container image storage")
+  Container(helm_registry, "Helm Registry", "ChartMuseum/Harbor", "Helm chart storage")
+  Container(security_scan, "Security Scanner", "Trivy/Snyk", "Vulnerability scanning")
+}
+
+System_Boundary(k8s_cluster, "Kubernetes Cluster") {
+  System_Boundary(argocd_ns, "ArgoCD Namespace") {
+    Container(argocd_server, "ArgoCD Server", "ArgoCD Component", "GitOps controller and UI")
+    Container(argocd_controller, "Application Controller", "ArgoCD Component", "Sync applications")
+    Container(argocd_repo_server, "Repository Server", "ArgoCD Component", "Git repository access")
+    Container(argocd_dex, "Dex Server", "ArgoCD Component", "OIDC authentication")
+    ContainerDb(argocd_redis, "Redis", "Redis Cache", "ArgoCD state cache")
+  }
+  
+  System_Boundary(apps_ns, "Applications Namespace") {
+    Container(ingress_ctrl, "Ingress Controller", "Nginx Ingress", "Traffic routing")
+    
+    Container(user_svc, "User Service", "ClusterIP", "User management")
+    Container(user_pods, "User Pods", "Java, Spring Boot\nStateless (3 replicas)", "User operations")
+    
+    Container(product_svc, "Product Service", "ClusterIP", "Product catalog")
+    Container(product_pods, "Product Pods", "Go, Gin\nStateless (3 replicas)", "Product management")
+    
+    Container(order_svc, "Order Service", "ClusterIP", "Order processing")
+    Container(order_pods, "Order Pods", "Java, Spring Boot\nStateless (3 replicas)", "Order operations")
+  }
+  
+  System_Boundary(monitoring_ns, "Monitoring Namespace") {
+    Container(prometheus, "Prometheus", "Monitoring System", "Metrics collection")
+    Container(grafana, "Grafana", "Visualization", "Metrics dashboards")
+    Container(alertmanager, "AlertManager", "Alert System", "Alert routing")
+  }
+  
+  System_Boundary(storage_ns, "Storage Namespace") {
+    ContainerDb(user_db, "User Database", "PostgreSQL\nStatefulSet", "User data persistence")
+    ContainerDb(product_db, "Product Database", "MongoDB\nStatefulSet", "Product catalog")
+    ContainerDb(order_db, "Order Database", "PostgreSQL\nStatefulSet", "Order data")
+  }
+}
+
+System_Boundary(argocd_apps, "ArgoCD Applications") {
+  Container(user_app, "User Application", "ArgoCD Application", "Manages user service deployment")
+  Container(product_app, "Product Application", "ArgoCD Application", "Manages product service deployment")
+  Container(order_app, "Order Application", "ArgoCD Application", "Manages order service deployment")
+  Container(monitoring_app, "Monitoring Application", "ArgoCD Application", "Manages monitoring stack")
+  Container(infra_app, "Infrastructure Application", "ArgoCD Application", "Manages cluster infrastructure")
+}
+
+System_Boundary(external_services, "External Services") {
+  Container(slack, "Slack", "Notification Service", "Deployment notifications")
+  Container(pagerduty, "PagerDuty", "Incident Management", "Alert escalation")
+  Container(vault, "HashiCorp Vault", "Secret Management", "Secrets and certificates")
+}
+
+Rel(developer, app_repo, "Commits code", "Git Push")
+Rel(devops, config_repo, "Updates manifests", "Git Push")
+Rel(devops, infra_repo, "Updates infrastructure", "Git Push")
+Rel(app_repo, github_actions, "Triggers build", "Webhook")
+Rel(github_actions, security_scan, "Scans images", "HTTP API")
+Rel(github_actions, docker_registry, "Pushes images", "Docker Push")
+Rel(github_actions, config_repo, "Updates image tags", "Git Push")
+Rel(github_actions, helm_registry, "Pushes charts", "Helm Push")
+Rel(argocd_repo_server, config_repo, "Polls for changes", "Git Pull")
+Rel(argocd_repo_server, helm_registry, "Fetches charts", "Helm Pull")
+Rel(argocd_controller, user_app, "Manages", "Kubernetes API")
+Rel(argocd_controller, product_app, "Manages", "Kubernetes API")
+Rel(argocd_controller, order_app, "Manages", "Kubernetes API")
+Rel(argocd_controller, monitoring_app, "Manages", "Kubernetes API")
+Rel(argocd_controller, infra_app, "Manages", "Kubernetes API")
+Rel(user_app, user_svc, "Deploys", "Kubernetes API")
+Rel(user_app, user_pods, "Deploys", "Kubernetes API")
+Rel(product_app, product_svc, "Deploys", "Kubernetes API")
+Rel(product_app, product_pods, "Deploys", "Kubernetes API")
+Rel(order_app, order_svc, "Deploys", "Kubernetes API")
+Rel(order_app, order_pods, "Deploys", "Kubernetes API")
+Rel(monitoring_app, prometheus, "Deploys", "Kubernetes API")
+Rel(monitoring_app, grafana, "Deploys", "Kubernetes API")
+Rel(monitoring_app, alertmanager, "Deploys", "Kubernetes API")
+Rel(infra_app, ingress_ctrl, "Deploys", "Kubernetes API")
+Rel(argocd_server, argocd_redis, "Caches state", "Redis Protocol")
+Rel(argocd_server, argocd_dex, "Authenticates", "OIDC")
+Rel(argocd_server, slack, "Sends notifications", "Webhook")
+Rel(alertmanager, pagerduty, "Escalates alerts", "HTTP API")
+Rel(user_pods, user_db, "Stores data", "JDBC/SQL")
+Rel(product_pods, product_db, "Stores data", "MongoDB Protocol")
+Rel(order_pods, order_db, "Stores data", "JDBC/SQL")
+Rel(prometheus, user_pods, "Scrapes metrics", "HTTP")
+Rel(prometheus, product_pods, "Scrapes metrics", "HTTP")
+Rel(prometheus, order_pods, "Scrapes metrics", "HTTP")
+Rel(grafana, prometheus, "Queries metrics", "PromQL")
+Rel(alertmanager, prometheus, "Receives alerts", "HTTP")
+Rel(user_pods, vault, "Retrieves secrets", "HTTP API")
+Rel(product_pods, vault, "Retrieves secrets", "HTTP API")
+Rel(order_pods, vault, "Retrieves secrets", "HTTP API")
+Rel(developer, argocd_server, "Views deployments", "HTTPS")
+Rel(devops, argocd_server, "Manages applications", "HTTPS")
+@enduml

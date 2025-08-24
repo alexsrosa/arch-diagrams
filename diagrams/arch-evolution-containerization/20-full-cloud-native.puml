@@ -1,0 +1,131 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+TITLE Full Cloud-Native Architecture
+
+Person(user, "User", "Uses mobile/web applications")
+
+System_Boundary(cloud_provider, "Cloud Provider (AWS/GCP/Azure)") {
+  System_Boundary(edge_ns, "Edge/CDN Layer") {
+    Container(cdn, "CDN", "CloudFront/CloudFlare", "Global content delivery")
+    Container(waf, "Web Application Firewall", "AWS WAF/CloudFlare", "DDoS protection")
+  }
+  
+  System_Boundary(k8s_cluster, "Multi-Zone Kubernetes Cluster") {
+    System_Boundary(istio_mesh, "Istio Service Mesh") {
+      Container(istio_gateway, "Istio Gateway", "Envoy Proxy", "Mesh ingress")
+      Container(istio_proxy, "Istio Sidecars", "Envoy Proxies", "Service-to-service communication")
+    }
+    
+    System_Boundary(frontend_ns, "Frontend Namespace") {
+      Container(frontend_svc, "Frontend Service", "ClusterIP", "SPA service")
+      Container(frontend_pods, "Frontend Pods", "React/Vue.js\nNginx (3 replicas)", "Progressive Web App")
+    }
+    
+    System_Boundary(bff_ns, "BFF Namespace") {
+      Container(bff_svc, "BFF Service", "ClusterIP", "Backend-for-Frontend")
+      Container(bff_pods, "BFF Pods", "Node.js/Go\nStateless (5 replicas)", "API aggregation & transformation")
+    }
+    
+    System_Boundary(services_ns, "Microservices Namespace") {
+      Container(user_svc, "User Service", "ClusterIP", "User management")
+      Container(user_pods, "User Pods", "Java/Spring Boot\nAuto-scaling (2-10)", "Identity & profiles")
+      
+      Container(product_svc, "Product Service", "ClusterIP", "Product catalog")
+      Container(product_pods, "Product Pods", "Go/Gin\nAuto-scaling (3-15)", "Product management")
+      
+      Container(order_svc, "Order Service", "ClusterIP", "Order processing")
+      Container(order_pods, "Order Pods", "Java/Spring Boot\nAuto-scaling (2-12)", "Order workflow")
+      
+      Container(payment_svc, "Payment Service", "ClusterIP", "Payment processing")
+      Container(payment_pods, "Payment Pods", "Python/FastAPI\nAuto-scaling (1-8)", "Payment gateway integration")
+      
+      Container(notification_svc, "Notification Service", "ClusterIP", "Multi-channel notifications")
+      Container(notification_pods, "Notification Pods", "Node.js\nAuto-scaling (2-6)", "Email/SMS/Push notifications")
+    }
+    
+    System_Boundary(data_ns, "Data Layer Namespace") {
+      Container(kafka_cluster, "Kafka Cluster", "Apache Kafka\nStatefulSet (3 brokers)", "Event streaming")
+      Container(redis_cluster, "Redis Cluster", "Redis\nStatefulSet (6 nodes)", "Distributed cache")
+      
+      ContainerDb(user_db, "User Database", "PostgreSQL\nStateful (Primary+Replica)", "User data")
+      ContainerDb(product_db, "Product Database", "MongoDB\nStateful (Replica Set)", "Product catalog")
+      ContainerDb(order_db, "Order Database", "PostgreSQL\nStateful (Primary+Replica)", "Order data")
+      ContainerDb(analytics_db, "Analytics Database", "ClickHouse\nStateful", "Analytics & reporting")
+    }
+    
+    System_Boundary(observability_ns, "Observability Namespace") {
+      Container(prometheus, "Prometheus", "Monitoring\nStatefulSet", "Metrics collection")
+      Container(grafana, "Grafana", "Visualization\nDeployment", "Dashboards & alerting")
+      Container(jaeger, "Jaeger", "Distributed Tracing\nDeployment", "Request tracing")
+      Container(elasticsearch, "Elasticsearch", "Log Storage\nStatefulSet", "Centralized logging")
+      Container(kibana, "Kibana", "Log Visualization\nDeployment", "Log analysis")
+      Container(fluentd, "Fluentd", "Log Collector\nDaemonSet", "Log aggregation")
+    }
+    
+    System_Boundary(security_ns, "Security Namespace") {
+      Container(vault, "HashiCorp Vault", "Secret Management\nStatefulSet", "Secrets & certificates")
+      Container(falco, "Falco", "Runtime Security\nDaemonSet", "Threat detection")
+      Container(opa, "Open Policy Agent", "Policy Engine\nDeployment", "Authorization policies")
+    }
+    
+    System_Boundary(gitops_ns, "GitOps Namespace") {
+      Container(argocd, "ArgoCD", "GitOps Controller\nDeployment", "Continuous deployment")
+      Container(tekton, "Tekton", "CI/CD Pipeline\nCustom Resources", "Build & deploy pipelines")
+    }
+  }
+  
+  System_Boundary(serverless_ns, "Serverless Functions") {
+    Container(lambda_functions, "Lambda Functions", "AWS Lambda/Cloud Functions", "Event-driven processing")
+    Container(step_functions, "Step Functions", "AWS Step Functions", "Workflow orchestration")
+  }
+  
+  System_Boundary(external_services, "External Services") {
+    Container(s3_storage, "Object Storage", "AWS S3/GCS", "File & media storage")
+    Container(rds_backup, "Managed Database", "AWS RDS/Cloud SQL", "Backup & disaster recovery")
+    Container(secrets_manager, "Secrets Manager", "AWS Secrets Manager", "External secrets")
+  }
+}
+
+Rel(user, cdn, "Accesses via", "HTTP/HTTPS")
+Rel(cdn, waf, "Filtered traffic", "HTTP/HTTPS")
+Rel(waf, istio_gateway, "Secure traffic", "HTTP/HTTPS")
+Rel(istio_gateway, frontend_svc, "Routes to frontend", "HTTP")
+Rel(frontend_svc, frontend_pods, "Load balances", "HTTP")
+Rel(frontend_pods, bff_svc, "API calls", "HTTP/REST")
+Rel(bff_svc, bff_pods, "Load balances", "HTTP")
+Rel(bff_pods, user_svc, "User operations", "HTTP/gRPC")
+Rel(bff_pods, product_svc, "Product queries", "HTTP/gRPC")
+Rel(bff_pods, order_svc, "Order operations", "HTTP/gRPC")
+Rel(order_pods, payment_svc, "Payment processing", "HTTP/gRPC")
+Rel(istio_proxy, user_pods, "mTLS communication", "HTTP/gRPC")
+Rel(istio_proxy, product_pods, "mTLS communication", "HTTP/gRPC")
+Rel(istio_proxy, order_pods, "mTLS communication", "HTTP/gRPC")
+Rel(user_pods, kafka_cluster, "Publishes events", "Kafka Protocol")
+Rel(product_pods, kafka_cluster, "Publishes events", "Kafka Protocol")
+Rel(order_pods, kafka_cluster, "Publishes events", "Kafka Protocol")
+Rel(kafka_cluster, notification_pods, "Consumes events", "Kafka Protocol")
+Rel(kafka_cluster, lambda_functions, "Triggers functions", "Event")
+Rel(user_pods, redis_cluster, "Cache operations", "Redis Protocol")
+Rel(product_pods, redis_cluster, "Cache operations", "Redis Protocol")
+Rel(user_pods, user_db, "User data", "SQL")
+Rel(product_pods, product_db, "Product data", "MongoDB Protocol")
+Rel(order_pods, order_db, "Order data", "SQL")
+Rel(prometheus, user_pods, "Scrapes metrics", "HTTP")
+Rel(prometheus, product_pods, "Scrapes metrics", "HTTP")
+Rel(prometheus, order_pods, "Scrapes metrics", "HTTP")
+Rel(grafana, prometheus, "Queries metrics", "PromQL")
+Rel(jaeger, istio_proxy, "Collects traces", "gRPC")
+Rel(fluentd, user_pods, "Collects logs", "Fluent Protocol")
+Rel(fluentd, elasticsearch, "Ships logs", "HTTP")
+Rel(kibana, elasticsearch, "Queries logs", "Elasticsearch API")
+Rel(vault, user_pods, "Provides secrets", "HTTP API")
+Rel(vault, product_pods, "Provides secrets", "HTTP API")
+Rel(opa, istio_proxy, "Policy decisions", "HTTP API")
+Rel(argocd, k8s_cluster, "Deploys applications", "Kubernetes API")
+Rel(tekton, argocd, "Triggers deployment", "Webhook")
+Rel(user_db, rds_backup, "Backup replication", "SQL")
+Rel(product_db, s3_storage, "Media storage", "HTTP API")
+Rel(vault, secrets_manager, "External secrets", "API")
+@enduml

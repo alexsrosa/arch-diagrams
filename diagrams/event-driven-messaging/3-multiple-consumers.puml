@@ -1,0 +1,56 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Multiple Consumers Pattern
+
+!define RECTANGLE class
+
+RECTANGLE Producer {
+  + produceMessage()
+  + sendToQueue()
+}
+
+RECTANGLE Queue {
+  + enqueue(message)
+  + dequeue()
+  + size()
+}
+
+RECTANGLE "Consumer A" as ConsumerA {
+  + pullFromQueue()
+  + processMessage()
+}
+
+RECTANGLE "Consumer B" as ConsumerB {
+  + pullFromQueue()
+  + processMessage()
+}
+
+Producer --> Queue : "Send Messages\n[Asynchronous]"
+Queue --> ConsumerA : "Pull Message\n[Competing Consumer]"
+Queue --> ConsumerB : "Pull Message\n[Competing Consumer]"
+
+note right of Producer
+  Single producer sends
+  messages to shared queue
+end note
+
+note top of Queue
+  Queue distributes messages
+  between multiple consumers
+  (load balancing)
+end note
+
+note bottom of ConsumerA
+  Consumer A competes
+  for messages with
+  other consumers
+end note
+
+note bottom of ConsumerB
+  Consumer B competes
+  for messages with
+  other consumers
+end note
+
+@enduml

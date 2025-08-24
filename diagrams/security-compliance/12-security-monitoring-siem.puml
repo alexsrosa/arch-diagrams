@@ -1,0 +1,195 @@
+@startuml
+!theme plain
+title Security Information and Event Management (SIEM) System
+
+participant "Web Server" as web
+participant "Database Server" as db
+participant "Firewall" as fw
+participant "Network Device" as network
+participant "Endpoint Agent" as endpoint
+participant "Log Collector" as collector
+participant "SIEM Platform" as siem
+participant "Threat Intelligence" as ti
+participant "ML Analytics Engine" as ml
+participant "Alert Manager" as alert
+participant "Security Team" as security
+participant "Incident Response" as ir
+
+note over web, ir
+  SIEM aggregates, correlates, and analyzes security events
+  from multiple sources to detect and respond to threats
+end note
+
+== Log Collection Phase ==
+
+web -> collector: 1. Send application logs\n(access, error, authentication)
+activate collector
+
+db -> collector: 2. Send database logs\n(queries, connections, failures)
+
+fw -> collector: 3. Send firewall logs\n(blocked/allowed traffic)
+
+network -> collector: 4. Send network logs\n(flow data, intrusion attempts)
+
+endpoint -> collector: 5. Send endpoint logs\n(process execution, file changes)
+
+collector -> collector: 6. Normalize log formats:\n- Parse different log formats\n- Standardize timestamps\n- Extract key fields\n- Enrich with metadata
+
+collector -> siem: 7. Forward normalized logs\n(structured event data)
+deactivate collector
+activate siem
+
+== Event Processing and Correlation ==
+
+siem -> siem: 8. Store events in data lake\n(indexed for fast searching)
+
+siem -> ti: 9. Enrich with threat intel\n(IOCs, malicious IPs, domains)
+activate ti
+
+ti -> ti: 10. Check against feeds:\n- Malware signatures\n- Known bad IPs\n- Suspicious domains\n- Attack patterns
+
+ti --> siem: 11. Enriched event data\n(threat context added)
+deactivate ti
+
+siem -> ml: 12. Apply ML analytics\n(anomaly detection)
+activate ml
+
+ml -> ml: 13. Analyze patterns:\n- Baseline behavior\n- Statistical anomalies\n- User behavior analytics\n- Network traffic analysis
+
+ml --> siem: 14. Anomaly scores\n(risk assessment)
+deactivate ml
+
+== Rule-Based Detection ==
+
+siem -> siem: 15. Apply correlation rules:\n- Failed login attempts\n- Privilege escalation\n- Data exfiltration\n- Lateral movement\n- Malware indicators
+
+alt High-Risk Event Detected
+    siem -> alert: 16a. Generate security alert\n(critical severity)
+    activate alert
+    
+    alert -> alert: 17a. Alert prioritization:\n    - Risk scoring\n    - Business impact\n    - Asset criticality\n    - False positive filtering
+    
+    alert -> security: 18a. Notify security team\n(email, SMS, dashboard)
+    activate security
+    
+    security -> security: 19a. Initial triage:\n    - Validate alert\n    - Assess impact\n    - Determine response
+    
+    alt Confirmed Incident
+        security -> ir: 20a. Escalate to IR team\n(incident details)
+        activate ir
+        
+        ir -> ir: 21a. Incident response:\n        - Containment actions\n        - Evidence collection\n        - Impact assessment\n        - Recovery planning
+        
+        ir -> siem: 22a. Request additional data\n(forensic analysis)
+        siem --> ir: 23a. Historical event data\n(timeline reconstruction)
+        
+        ir -> security: 24a. Incident status update\n(containment progress)
+        deactivate ir
+    else False Positive
+        security -> alert: 20b. Mark as false positive\n(tune detection rules)
+        alert -> siem: 21b. Update rule parameters\n(reduce noise)
+    end
+    
+    deactivate security
+    deactivate alert
+else Normal Activity
+    siem -> siem: 16b. Continue monitoring\n(baseline activity)
+end
+
+== Threat Hunting ==
+
+security -> siem: 25. Proactive threat hunting\n(hypothesis-driven search)
+activate security
+
+siem -> siem: 26. Advanced queries:\n- IOC searches\n- Behavioral patterns\n- Timeline analysis\n- Cross-correlation
+
+siem --> security: 27. Search results\n(potential threats)
+
+alt Threat Discovered
+    security -> alert: 28a. Create hunting alert\n(new threat identified)
+    activate alert
+    
+    alert -> ir: 29a. Initiate investigation\n(threat details)
+    activate ir
+    
+    ir -> siem: 30a. Deep dive analysis\n(full investigation)
+    siem --> ir: 31a. Comprehensive data\n(attack timeline)
+    
+    ir -> ti: 32a. Update threat intel\n(new IOCs discovered)
+    activate ti
+    ti -> ti: 33a. Enrich threat feeds\n(share intelligence)
+    deactivate ti
+    
+    deactivate ir
+    deactivate alert
+else No Threats Found
+    security -> siem: 28b. Document findings\n(hunting report)
+end
+
+deactivate security
+
+== Compliance Reporting ==
+
+siem -> siem: 34. Generate compliance reports:\n- SOX audit trails\n- PCI-DSS monitoring\n- GDPR data access\n- HIPAA security events
+
+siem -> siem: 35. Automated reporting:\n- Daily security summaries\n- Weekly trend analysis\n- Monthly compliance reports\n- Quarterly risk assessments
+
+== Performance Monitoring ==
+
+siem -> siem: 36. System health checks:\n- Log ingestion rates\n- Storage utilization\n- Query performance\n- Alert response times
+
+alt Performance Issues
+    siem -> security: 37a. System alert\n(performance degradation)
+    activate security
+    
+    security -> siem: 38a. Investigate issues\n(capacity planning)
+    
+    security -> siem: 39a. Optimize configuration\n(tune performance)
+    deactivate security
+else System Healthy
+    siem -> siem: 37b. Continue operations\n(normal performance)
+end
+
+deactivate siem
+
+note right of collector
+  Log Sources:
+  - Application servers
+  - Database systems
+  - Network devices
+  - Security tools
+  - Cloud services
+  - Endpoint systems
+end note
+
+note right of siem
+  SIEM Capabilities:
+  - Real-time monitoring
+  - Event correlation
+  - Threat detection
+  - Incident response
+  - Compliance reporting
+  - Forensic analysis
+end note
+
+note left of ml
+  ML Analytics:
+  - Anomaly detection
+  - Behavioral analysis
+  - Predictive modeling
+  - Pattern recognition
+  - Risk scoring
+  - False positive reduction
+end note
+
+note left of alert
+  Alert Management:
+  - Priority classification
+  - Escalation workflows
+  - Notification channels
+  - Response tracking
+  - SLA monitoring
+  - Metrics reporting
+end note
+
+@enduml

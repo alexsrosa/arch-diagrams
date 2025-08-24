@@ -1,0 +1,73 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Message Router Pattern
+
+!define RECTANGLE class
+
+RECTANGLE Producer {
+  + produceMessage()
+  + sendToRouter()
+}
+
+RECTANGLE "Message Router" as MessageRouter {
+  + routeMessage()
+  + applyRules()
+  + selectDestination()
+}
+
+RECTANGLE "High Priority Queue" as HighPriorityQueue {
+  + enqueue(message)
+  + dequeue()
+}
+
+RECTANGLE "Normal Queue" as NormalQueue {
+  + enqueue(message)
+  + dequeue()
+}
+
+RECTANGLE "Error Queue" as ErrorQueue {
+  + enqueue(message)
+  + dequeue()
+}
+
+RECTANGLE "High Priority Consumer" as HighPriorityConsumer {
+  + processUrgentMessages()
+}
+
+RECTANGLE "Normal Consumer" as NormalConsumer {
+  + processRegularMessages()
+}
+
+RECTANGLE "Error Handler" as ErrorHandler {
+  + handleErrorMessages()
+}
+
+Producer --> MessageRouter : "Send Message\n[with Metadata]"
+MessageRouter --> HighPriorityQueue : "Route\n[Priority=High]"
+MessageRouter --> NormalQueue : "Route\n[Priority=Normal]"
+MessageRouter --> ErrorQueue : "Route\n[Invalid Messages]"
+HighPriorityQueue --> HighPriorityConsumer : "Pull Message"
+NormalQueue --> NormalConsumer : "Pull Message"
+ErrorQueue --> ErrorHandler : "Pull Message"
+
+note right of Producer
+  Producer sends messages
+  with routing metadata
+  (priority, type, etc.)
+end note
+
+note top of MessageRouter
+  Router examines message
+  properties and applies
+  routing rules to select
+  appropriate destination
+end note
+
+note bottom of HighPriorityConsumer
+  Different consumers handle
+  messages based on their
+  routing destination
+end note
+
+@enduml

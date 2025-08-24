@@ -1,0 +1,45 @@
+@startuml
+actor User
+participant "Order Service" as OrderService
+participant "Circuit Breaker" as CB
+participant "Inventory Service" as InventorySvc
+
+User -> OrderService : POST /orders { productId, quantity }
+activate OrderService
+
+loop Retry up to 2 times
+    OrderService -> CB : checkStock(productId, quantity)
+    activate CB
+    CB -> InventorySvc : GET /inventory/{productId}/stock  
+    activate InventorySvc
+    InventorySvc --> CB : 500 Internal Error  
+    deactivate InventorySvc
+    CB --> OrderService : Error
+    deactivate CB
+
+    alt attempts &lt; MAX_RETRIES
+        OrderService -> OrderService : wait backoff
+    else
+        OrderService -> CB : openCircuit()
+    end
+end
+
+alt Circuit Closed and Stock Available
+    OrderService -> CB : checkStock(productId, quantity)
+    activate CB
+    CB -> InventorySvc : GET /inventory/{productId}/stock  
+    activate InventorySvc
+    InventorySvc --> CB : { available: true, stock: 10 }
+    deactivate InventorySvc
+    CB --> OrderService : StockInfo
+    deactivate CB
+
+    OrderService -> OrderService : createOrder()
+    OrderService --> User : 201 Created { orderId }
+else Circuit Open or Persistent Failure
+    OrderService -> OrderService : fallback()
+    OrderService --> User : 503 Service Unavailable
+end
+
+deactivate OrderService
+@enduml

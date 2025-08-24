@@ -1,0 +1,30 @@
+@startuml
+actor User
+participant "Order Service" as OrderService
+database "Master Database" as MasterDB
+database "Replica Database" as ReplicaDB
+
+== Create Order ==
+User -> OrderService : POST /orders\n{ productId, quantity }
+activate OrderService
+
+OrderService -> MasterDB : INSERT INTO orders(...)\nRETURNING order_id
+activate MasterDB
+MasterDB --> OrderService : order_id
+deactivate MasterDB
+
+OrderService --> User : 201 Created\n{ order_id }
+deactivate OrderService
+
+== Retrieve Order ==
+User -> OrderService : GET /orders/{order_id}
+activate OrderService
+
+OrderService -> ReplicaDB : SELECT * FROM orders\nWHERE id = {order_id}
+activate ReplicaDB
+ReplicaDB --> OrderService : { order data }
+deactivate ReplicaDB
+
+OrderService --> User : 200 OK\n{ order data }
+deactivate OrderService
+@enduml

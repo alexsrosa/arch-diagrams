@@ -1,0 +1,66 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Dead Letter Queue (DLQ) Pattern
+
+!define RECTANGLE class
+
+RECTANGLE Producer {
+  + produceMessage()
+  + sendToQueue()
+}
+
+RECTANGLE "Main Queue" as MainQueue {
+  + enqueue(message)
+  + dequeue()
+  + retryCount()
+}
+
+RECTANGLE Consumer {
+  + pullFromQueue()
+  + processMessage()
+  + handleFailure()
+}
+
+RECTANGLE "Dead Letter Queue" as DLQ {
+  + storeFailed(message)
+  + getFailedMessages()
+  + analyze()
+}
+
+RECTANGLE "DLQ Monitor" as DLQMonitor {
+  + monitorDLQ()
+  + alertOnFailures()
+  + reprocessMessages()
+}
+
+Producer --> MainQueue : "Send Messages\n[Normal Flow]"
+MainQueue --> Consumer : "Pull Message\n[Processing]"
+Consumer --> MainQueue : "ACK Success\n[Acknowledge]"
+Consumer --> DLQ : "NACK Failed\n[After Retries]"
+DLQ --> DLQMonitor : "Monitor\n[Failed Messages]"
+
+note right of Producer
+  Producer sends messages
+  to main processing queue
+end note
+
+note top of MainQueue
+  Main queue handles normal
+  message flow with retry
+  mechanism for failures
+end note
+
+note left of Consumer
+  Consumer processes messages
+  and sends failed ones to DLQ
+  after exhausting retries
+end note
+
+note bottom of DLQ
+  DLQ stores messages that
+  couldn't be processed
+  for later analysis
+end note
+
+@enduml

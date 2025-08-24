@@ -1,0 +1,76 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Saga Orchestration Pattern
+
+!define RECTANGLE class
+
+RECTANGLE "Saga Orchestrator" as SagaOrchestrator {
+  + startSaga()
+  + handleResponse()
+  + executeCompensation()
+  + sagaState: ACTIVE
+}
+
+RECTANGLE "Service A" as ServiceA {
+  + processOrder()
+  + compensateOrder()
+  + orderStatus: PENDING
+}
+
+RECTANGLE "Service B" as ServiceB {
+  + reserveInventory()
+  + releaseInventory()
+  + inventoryStatus: RESERVED
+}
+
+RECTANGLE "Service C" as ServiceC {
+  + processPayment()
+  + refundPayment()
+  + paymentStatus: CHARGED
+}
+
+RECTANGLE "Message Queue" as MessageQueue {
+  + routeMessages()
+  + handleSagaEvents()
+}
+
+RECTANGLE "Compensation Flow" as CompensationFlow {
+  + Step 1: Refund Payment (Service C)
+  + Step 2: Release Inventory (Service B)
+  + Step 3: Cancel Order (Service A)
+}
+
+SagaOrchestrator --> MessageQueue : "Send Command\n[Start Transaction]"
+MessageQueue --> ServiceA : "Process Order\n[Step 1]"
+ServiceA --> MessageQueue : "Order Success\n[Continue Saga]"
+MessageQueue --> ServiceB : "Reserve Inventory\n[Step 2]"
+ServiceB --> MessageQueue : "Inventory Reserved\n[Continue Saga]"
+MessageQueue --> ServiceC : "Process Payment\n[Step 3]"
+ServiceC --> MessageQueue : "Payment Failed\n[Trigger Compensation]"
+MessageQueue --> SagaOrchestrator : "Failure Event"
+SagaOrchestrator --> CompensationFlow : "Execute Rollback\n[Reverse Order]"
+CompensationFlow --> ServiceC : "Refund Payment"
+CompensationFlow --> ServiceB : "Release Inventory"
+CompensationFlow --> ServiceA : "Cancel Order"
+
+note right of SagaOrchestrator
+  Orchestrator manages the
+  entire saga workflow and
+  handles both success and
+  failure scenarios
+end note
+
+note top of MessageQueue
+  Message queue enables
+  asynchronous communication
+  between saga participants
+end note
+
+note bottom of CompensationFlow
+  Compensation actions are
+  executed in reverse order
+  to maintain data consistency
+end note
+
+@enduml

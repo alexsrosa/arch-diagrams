@@ -1,0 +1,72 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Fan-out Pattern
+
+!define RECTANGLE class
+
+RECTANGLE Producer {
+  + produceMessage()
+  + publishToTopic()
+}
+
+RECTANGLE Topic {
+  + publish(message)
+  + fanOut()
+  + routeToQueues()
+}
+
+RECTANGLE "Queue A" as QueueA {
+  + enqueue(message)
+  + dequeue()
+}
+
+RECTANGLE "Queue B" as QueueB {
+  + enqueue(message)
+  + dequeue()
+}
+
+RECTANGLE "Queue C" as QueueC {
+  + enqueue(message)
+  + dequeue()
+}
+
+RECTANGLE "Consumer A" as ConsumerA {
+  + processOrderEvents()
+}
+
+RECTANGLE "Consumer B" as ConsumerB {
+  + processInventoryEvents()
+}
+
+RECTANGLE "Consumer C" as ConsumerC {
+  + processNotificationEvents()
+}
+
+Producer --> Topic : "Publish Message\n[Single Source]"
+Topic --> QueueA : "Fan-out\n[Order Processing]"
+Topic --> QueueB : "Fan-out\n[Inventory Update]"
+Topic --> QueueC : "Fan-out\n[Notifications]"
+QueueA --> ConsumerA : "Pull Message"
+QueueB --> ConsumerB : "Pull Message"
+QueueC --> ConsumerC : "Pull Message"
+
+note right of Producer
+  Producer publishes one
+  message to topic for
+  multiple processing paths
+end note
+
+note top of Topic
+  Topic fans out messages
+  to multiple queues for
+  different business functions
+end note
+
+note bottom of ConsumerA
+  Each consumer handles
+  specific business logic
+  independently
+end note
+
+@enduml

@@ -1,0 +1,38 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+TITLE Microservices Split - Two Services on Kubernetes
+
+Person(user, "User", "Uses a web browser")
+
+System_Boundary(k8s_cluster, "Kubernetes Cluster") {
+  System_Boundary(frontend_ns, "Frontend Namespace") {
+    Container(frontend_svc, "Frontend Service", "ClusterIP", "Exposes frontend internally")
+    Container(frontend_pod, "Frontend Pod", "React, Nginx\nKubernetes Pod", "Provides user interface")
+  }
+  
+  System_Boundary(backend_ns, "Backend Namespace") {
+    Container(backend_svc, "Backend Service", "ClusterIP", "Exposes backend API")
+    Container(backend_pod, "Backend Pod", "Java, Spring Boot\nKubernetes Pod", "Provides business logic and API")
+  }
+  
+  System_Boundary(ingress_ns, "Ingress Namespace") {
+    Container(ingress, "Ingress Controller", "Nginx Ingress", "Routes external traffic")
+  }
+  
+  System_Boundary(data_ns, "Data Namespace") {
+    ContainerDb(db_pod, "Database Pod", "PostgreSQL\nKubernetes Pod", "Stores application data")
+    Container(pvc, "Persistent Volume", "Kubernetes PVC", "Persistent storage")
+  }
+}
+
+Rel(user, ingress, "Accesses via", "HTTP/HTTPS")
+Rel(ingress, frontend_svc, "Routes to frontend", "HTTP")
+Rel(ingress, backend_svc, "Routes API calls", "HTTP")
+Rel(frontend_svc, frontend_pod, "Serves UI", "HTTP")
+Rel(backend_svc, backend_pod, "Handles requests", "HTTP")
+Rel(frontend_pod, backend_pod, "API calls", "HTTP/REST")
+Rel(backend_pod, db_pod, "Reads/Writes", "JDBC/SQL")
+Rel(db_pod, pvc, "Persists data", "File System")
+@enduml

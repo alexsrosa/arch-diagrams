@@ -1,0 +1,86 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Kafka Partitioning Pattern
+
+!define RECTANGLE class
+
+RECTANGLE Producer {
+  + produceMessage()
+  + selectPartition()
+  + sendToKafka()
+}
+
+RECTANGLE "Kafka Topic" as KafkaTopic {
+  + name: "user-events"
+  + partitions: 3
+  + replicationFactor: 3
+}
+
+RECTANGLE "Partition 0" as Partition0 {
+  + offset: 0-1000
+  + leader: Broker1
+}
+
+RECTANGLE "Partition 1" as Partition1 {
+  + offset: 0-800
+  + leader: Broker2
+}
+
+RECTANGLE "Partition 2" as Partition2 {
+  + offset: 0-1200
+  + leader: Broker3
+}
+
+RECTANGLE "Consumer Group" as ConsumerGroup {
+  + groupId: "user-processors"
+  + balancePartitions()
+}
+
+RECTANGLE "Consumer A" as ConsumerA {
+  + assignedPartitions: [0]
+  + processMessages()
+}
+
+RECTANGLE "Consumer B" as ConsumerB {
+  + assignedPartitions: [1]
+  + processMessages()
+}
+
+RECTANGLE "Consumer C" as ConsumerC {
+  + assignedPartitions: [2]
+  + processMessages()
+}
+
+Producer --> KafkaTopic : "Publish Messages\n[Partitioned by Key]"
+KafkaTopic --> Partition0 : "Messages\n[Key Hash % 3 = 0]"
+KafkaTopic --> Partition1 : "Messages\n[Key Hash % 3 = 1]"
+KafkaTopic --> Partition2 : "Messages\n[Key Hash % 3 = 2]"
+ConsumerGroup --> ConsumerA : "Assign Partition 0"
+ConsumerGroup --> ConsumerB : "Assign Partition 1"
+ConsumerGroup --> ConsumerC : "Assign Partition 2"
+Partition0 --> ConsumerA : "Read Messages\n[Sequential]"
+Partition1 --> ConsumerB : "Read Messages\n[Sequential]"
+Partition2 --> ConsumerC : "Read Messages\n[Sequential]"
+
+note right of Producer
+  Producer partitions messages
+  based on key hash to ensure
+  related messages go to
+  same partition
+end note
+
+note top of KafkaTopic
+  Kafka topic with 3 partitions
+  enables parallel processing
+  while maintaining order
+  within each partition
+end note
+
+note bottom of ConsumerGroup
+  Consumer group automatically
+  balances partition assignment
+  among available consumers
+end note
+
+@enduml

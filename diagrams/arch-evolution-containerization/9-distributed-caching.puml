@@ -1,0 +1,64 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+TITLE Distributed Caching with Redis
+
+Person(user, "User", "Uses a web browser")
+
+System_Boundary(k8s_cluster, "Kubernetes Cluster") {
+  System_Boundary(gateway_ns, "Gateway Namespace") {
+    Container(ingress, "Ingress Controller", "Nginx Ingress", "External traffic entry point")
+    Container(api_gateway, "API Gateway", "Kong\nStateless Pod", "Routes API requests")
+  }
+  
+  System_Boundary(services_ns, "Services Namespace") {
+    Container(user_svc, "User Service", "ClusterIP", "User management")
+    Container(user_pods, "User Pods", "Java, Spring Boot\nStateless Pods (3 replicas)", "Handles user operations")
+    
+    Container(product_svc, "Product Service", "ClusterIP", "Product catalog")
+    Container(product_pods, "Product Pods", "Java, Spring Boot\nStateless Pods (3 replicas)", "Manages products")
+    
+    Container(order_svc, "Order Service", "ClusterIP", "Order processing")
+    Container(order_pods, "Order Pods", "Java, Spring Boot\nStateless Pods (2 replicas)", "Processes orders")
+  }
+  
+  System_Boundary(cache_ns, "Cache Namespace") {
+    Container(redis_svc, "Redis Service", "ClusterIP", "Cache service endpoint")
+    Container(redis_statefulset, "Redis StatefulSet", "Redis Cluster\n3 Master + 3 Replica Pods", "Distributed cache with persistence")
+    Container(redis_pvc, "Redis PVC", "Kubernetes PVC", "Persistent storage for Redis")
+    Container(redis_pv, "Redis PV", "Kubernetes PV", "Redis data persistence")
+  }
+  
+  System_Boundary(storage_ns, "Storage Namespace") {
+    Container(db_pv, "Database PV", "Kubernetes PV", "Database storage")
+    Container(db_pvc, "Database PVC", "Kubernetes PVC", "Database storage claim")
+    ContainerDb(db_pod, "Database Pod", "PostgreSQL\nStateful Pod", "Primary database")
+  }
+  
+  System_Boundary(config_ns, "Config Namespace") {
+    Container(redis_config, "Redis ConfigMap", "Kubernetes ConfigMap", "Redis cluster configuration")
+  }
+}
+
+Rel(user, ingress, "Accesses via", "HTTP/HTTPS")
+Rel(ingress, api_gateway, "Routes requests", "HTTP")
+Rel(api_gateway, user_svc, "User requests", "HTTP")
+Rel(api_gateway, product_svc, "Product requests", "HTTP")
+Rel(api_gateway, order_svc, "Order requests", "HTTP")
+Rel(user_svc, user_pods, "Load balances", "HTTP")
+Rel(product_svc, product_pods, "Load balances", "HTTP")
+Rel(order_svc, order_pods, "Load balances", "HTTP")
+Rel(user_pods, redis_svc, "Cache user data", "Redis Protocol")
+Rel(product_pods, redis_svc, "Cache product data", "Redis Protocol")
+Rel(order_pods, redis_svc, "Cache order data", "Redis Protocol")
+Rel(redis_svc, redis_statefulset, "Routes to pods", "Redis Protocol")
+Rel(redis_statefulset, redis_pvc, "Uses storage", "File System")
+Rel(redis_pvc, redis_pv, "Claims storage", "Storage API")
+Rel(redis_statefulset, redis_config, "Reads config", "K8s API")
+Rel(user_pods, db_pod, "User data (cache miss)", "JDBC/SQL")
+Rel(product_pods, db_pod, "Product data (cache miss)", "JDBC/SQL")
+Rel(order_pods, db_pod, "Order data (cache miss)", "JDBC/SQL")
+Rel(db_pod, db_pvc, "Uses storage", "File System")
+Rel(db_pvc, db_pv, "Claims storage", "Storage API")
+@enduml

@@ -1,0 +1,76 @@
+@startuml
+!theme plain
+title HTTPS Secure Communication with SSL/TLS Handshake
+
+actor "Client" as client
+participant "Web Server" as server
+participant "Certificate Authority" as ca
+
+note over client, ca
+  HTTPS communication with SSL/TLS handshake
+  ensuring encrypted data exchange
+end note
+
+== SSL/TLS Handshake ==
+
+client -> server: 1. Client Hello\n(supported cipher suites, TLS version)
+activate server
+
+server --> client: 2. Server Hello\n(selected cipher suite, TLS version)
+
+server --> client: 3. Certificate\n(server's SSL certificate)
+
+server --> client: 4. Server Hello Done
+
+client -> ca: 5. Verify certificate\n(check certificate validity)
+activate ca
+ca --> client: 6. Certificate valid
+deactivate ca
+
+client -> client: 7. Generate pre-master secret
+
+client -> server: 8. Client Key Exchange\n(encrypted pre-master secret)
+
+client -> server: 9. Change Cipher Spec
+
+client -> server: 10. Finished\n(encrypted handshake summary)
+
+server -> server: 11. Decrypt pre-master secret\nGenerate session keys
+
+server --> client: 12. Change Cipher Spec
+
+server --> client: 13. Finished\n(encrypted handshake summary)
+
+== Encrypted Data Exchange ==
+
+client -> server: 14. HTTP Request\n(encrypted with session key)
+
+server -> server: 15. Process request
+
+server --> client: 16. HTTP Response\n(encrypted with session key)
+
+== Session Termination ==
+
+client -> server: 17. Close Notify\n(encrypted)
+
+server --> client: 18. Close Notify\n(encrypted)
+
+deactivate server
+
+note right of server
+  Security benefits:
+  - Data confidentiality
+  - Data integrity
+  - Server authentication
+  - Protection against MITM attacks
+end note
+
+note left of client
+  Client verification:
+  - Certificate chain validation
+  - Certificate expiration check
+  - Hostname verification
+  - Revocation status check
+end note
+
+@enduml

@@ -1,0 +1,131 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+TITLE Complete Observability Stack
+
+Person(developer, "Developer", "Application developer")
+Person(sre, "SRE Engineer", "Site reliability engineer")
+Person(ops, "Operations Team", "Operations engineer")
+
+System_Boundary(k8s_cluster, "Kubernetes Cluster") {
+  System_Boundary(apps_ns, "Applications Namespace") {
+    Container(ingress_ctrl, "Ingress Controller", "Nginx Ingress", "Traffic routing with metrics")
+    
+    Container(user_svc, "User Service", "ClusterIP", "User management")
+    Container(user_pods, "User Pods", "Java, Spring Boot\nStateless (3 replicas)\nw/ Micrometer", "User operations with metrics")
+    
+    Container(product_svc, "Product Service", "ClusterIP", "Product catalog")
+    Container(product_pods, "Product Pods", "Go, Gin\nStateless (3 replicas)\nw/ Prometheus client", "Product management with metrics")
+    
+    Container(order_svc, "Order Service", "ClusterIP", "Order processing")
+    Container(order_pods, "Order Pods", "Java, Spring Boot\nStateless (3 replicas)\nw/ OpenTelemetry", "Order operations with tracing")
+  }
+  
+  System_Boundary(monitoring_ns, "Monitoring Namespace") {
+    Container(prometheus, "Prometheus", "Time Series Database", "Metrics collection and storage")
+    Container(prometheus_operator, "Prometheus Operator", "Kubernetes Operator", "Prometheus lifecycle management")
+    Container(node_exporter, "Node Exporter", "DaemonSet", "Node metrics collection")
+    Container(kube_state_metrics, "Kube State Metrics", "Deployment", "Kubernetes object metrics")
+    Container(cadvisor, "cAdvisor", "DaemonSet", "Container metrics")
+    
+    Container(grafana, "Grafana", "Visualization Platform", "Metrics dashboards and alerts")
+    Container(alertmanager, "AlertManager", "Alert Routing", "Alert processing and routing")
+    Container(blackbox_exporter, "Blackbox Exporter", "Deployment", "External endpoint monitoring")
+  }
+  
+  System_Boundary(logging_ns, "Logging Namespace") {
+    Container(fluentd, "Fluentd", "DaemonSet", "Log collection and forwarding")
+    Container(elasticsearch, "Elasticsearch", "StatefulSet (3 replicas)", "Log storage and indexing")
+    Container(kibana, "Kibana", "Deployment", "Log visualization and search")
+    Container(logstash, "Logstash", "Deployment", "Log processing and enrichment")
+    Container(filebeat, "Filebeat", "DaemonSet", "Lightweight log shipper")
+  }
+  
+  System_Boundary(tracing_ns, "Tracing Namespace") {
+    Container(jaeger_collector, "Jaeger Collector", "Deployment", "Trace collection")
+    Container(jaeger_query, "Jaeger Query", "Deployment", "Trace query service")
+    Container(jaeger_ui, "Jaeger UI", "Deployment", "Distributed tracing UI")
+    Container(jaeger_agent, "Jaeger Agent", "DaemonSet", "Local trace collection")
+    ContainerDb(jaeger_storage, "Jaeger Storage", "Cassandra\nStatefulSet", "Trace persistence")
+    
+    Container(otel_collector, "OpenTelemetry Collector", "Deployment", "Telemetry data processing")
+    Container(tempo, "Grafana Tempo", "StatefulSet", "Distributed tracing backend")
+  }
+  
+  System_Boundary(apm_ns, "APM Namespace") {
+    Container(elastic_apm, "Elastic APM Server", "Deployment", "Application performance monitoring")
+    Container(apm_agents, "APM Agents", "Sidecar Containers", "Application instrumentation")
+  }
+  
+  System_Boundary(security_ns, "Security Monitoring") {
+    Container(falco, "Falco", "DaemonSet", "Runtime security monitoring")
+    Container(falco_exporter, "Falco Exporter", "Deployment", "Security metrics export")
+    Container(opa_gatekeeper, "OPA Gatekeeper", "Deployment", "Policy enforcement")
+  }
+}
+
+System_Boundary(external_services, "External Services") {
+  Container(slack, "Slack", "Notification Service", "Alert notifications")
+  Container(pagerduty, "PagerDuty", "Incident Management", "Incident escalation")
+  Container(email, "Email Service", "SMTP Server", "Email notifications")
+  Container(webhook, "Webhook Endpoints", "External APIs", "Custom integrations")
+}
+
+System_Boundary(storage, "Persistent Storage") {
+  ContainerDb(prometheus_storage, "Prometheus Storage", "Persistent Volume", "Metrics time series data")
+  ContainerDb(grafana_storage, "Grafana Storage", "Persistent Volume", "Dashboards and configurations")
+  ContainerDb(es_storage, "Elasticsearch Storage", "Persistent Volume", "Log indices")
+  ContainerDb(tempo_storage, "Tempo Storage", "Object Storage (S3)", "Trace data")
+}
+
+Rel(user_pods, prometheus, "Exposes metrics", "HTTP /metrics")
+Rel(product_pods, prometheus, "Exposes metrics", "HTTP /metrics")
+Rel(order_pods, prometheus, "Exposes metrics", "HTTP /metrics")
+Rel(ingress_ctrl, prometheus, "Exposes metrics", "HTTP /metrics")
+Rel(node_exporter, prometheus, "Node metrics", "HTTP")
+Rel(kube_state_metrics, prometheus, "K8s metrics", "HTTP")
+Rel(cadvisor, prometheus, "Container metrics", "HTTP")
+Rel(blackbox_exporter, prometheus, "Endpoint metrics", "HTTP")
+Rel(prometheus_operator, prometheus, "Manages", "Kubernetes API")
+Rel(prometheus, alertmanager, "Sends alerts", "HTTP")
+Rel(prometheus, grafana, "Data source", "PromQL")
+Rel(prometheus, prometheus_storage, "Stores metrics", "TSDB")
+Rel(grafana, grafana_storage, "Stores config", "SQLite/PostgreSQL")
+Rel(alertmanager, slack, "Sends notifications", "Webhook")
+Rel(alertmanager, pagerduty, "Creates incidents", "HTTP API")
+Rel(alertmanager, email, "Sends emails", "SMTP")
+Rel(alertmanager, webhook, "Custom alerts", "HTTP")
+Rel(user_pods, fluentd, "Logs", "stdout/stderr")
+Rel(product_pods, fluentd, "Logs", "stdout/stderr")
+Rel(order_pods, fluentd, "Logs", "stdout/stderr")
+Rel(fluentd, elasticsearch, "Forwards logs", "HTTP")
+Rel(filebeat, logstash, "Ships logs", "Beats Protocol")
+Rel(logstash, elasticsearch, "Processes logs", "HTTP")
+Rel(elasticsearch, es_storage, "Stores indices", "Disk I/O")
+Rel(elasticsearch, kibana, "Data source", "Elasticsearch API")
+Rel(order_pods, jaeger_agent, "Sends traces", "UDP/gRPC")
+Rel(user_pods, otel_collector, "Sends telemetry", "gRPC")
+Rel(product_pods, otel_collector, "Sends telemetry", "gRPC")
+Rel(jaeger_agent, jaeger_collector, "Forwards traces", "gRPC")
+Rel(otel_collector, jaeger_collector, "Forwards traces", "gRPC")
+Rel(otel_collector, tempo, "Forwards traces", "gRPC")
+Rel(jaeger_collector, jaeger_storage, "Stores traces", "Cassandra Protocol")
+Rel(jaeger_query, jaeger_storage, "Queries traces", "Cassandra Protocol")
+Rel(jaeger_ui, jaeger_query, "Trace queries", "HTTP API")
+Rel(tempo, tempo_storage, "Stores traces", "S3 API")
+Rel(grafana, tempo, "Trace queries", "HTTP API")
+Rel(grafana, jaeger_query, "Trace queries", "HTTP API")
+Rel(apm_agents, elastic_apm, "APM data", "HTTP")
+Rel(elastic_apm, elasticsearch, "Stores APM data", "HTTP")
+Rel(falco, falco_exporter, "Security events", "gRPC")
+Rel(falco_exporter, prometheus, "Security metrics", "HTTP")
+Rel(opa_gatekeeper, prometheus, "Policy metrics", "HTTP")
+Rel(developer, grafana, "Views dashboards", "HTTPS")
+Rel(developer, kibana, "Searches logs", "HTTPS")
+Rel(developer, jaeger_ui, "Analyzes traces", "HTTPS")
+Rel(sre, grafana, "Monitors SLIs/SLOs", "HTTPS")
+Rel(sre, alertmanager, "Manages alerts", "HTTPS")
+Rel(ops, kibana, "Troubleshoots issues", "HTTPS")
+Rel(ops, prometheus, "Queries metrics", "HTTPS")
+@enduml

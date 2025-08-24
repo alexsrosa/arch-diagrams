@@ -1,0 +1,34 @@
+@startuml
+actor Frontend
+participant "Backend For Frontend (BFF)" as BFF
+participant "User Service" as UserService
+participant "Order Service" as OrderService
+participant "Inventory Service" as InventoryService
+
+Frontend -> BFF : GET /dashboard
+activate BFF
+
+par Fetch User Profile
+    BFF -> UserService : GET /users/{userId}
+    activate UserService
+    UserService --> BFF : 200 OK { user data }
+    deactivate UserService
+end
+
+par Fetch User Orders
+    BFF -> OrderService : GET /orders?userId={userId}
+    activate OrderService
+    OrderService --> BFF : 200 OK { orders list }
+    deactivate OrderService
+end
+
+par Fetch Inventory Status
+    BFF -> InventoryService : GET /inventory/status?productIds=[…]
+    activate InventoryService
+    InventoryService --> BFF : 200 OK { inventory info }
+    deactivate InventoryService
+end
+
+BFF --> Frontend : 200 OK { user, orders, inventory }
+deactivate BFF
+@enduml

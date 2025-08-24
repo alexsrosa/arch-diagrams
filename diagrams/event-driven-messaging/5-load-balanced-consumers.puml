@@ -1,0 +1,63 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Load Balanced Consumers Pattern
+
+!define RECTANGLE class
+
+RECTANGLE Producer {
+  + produceMessage()
+  + sendToQueue()
+}
+
+RECTANGLE Queue {
+  + enqueue(message)
+  + dequeue()
+  + loadBalance()
+}
+
+RECTANGLE "Load Balancer" as LoadBalancer {
+  + distributeMessage()
+  + selectConsumer()
+  + healthCheck()
+}
+
+RECTANGLE "Consumer 1" as Consumer1 {
+  + processMessage()
+  + reportHealth()
+}
+
+RECTANGLE "Consumer 2" as Consumer2 {
+  + processMessage()
+  + reportHealth()
+}
+
+RECTANGLE "Consumer 3" as Consumer3 {
+  + processMessage()
+  + reportHealth()
+}
+
+Producer --> Queue : "Send Messages\n[High Volume]"
+Queue --> LoadBalancer : "Forward Messages\n[Distribution]"
+LoadBalancer --> Consumer1 : "Route Message\n[Round Robin]"
+LoadBalancer --> Consumer2 : "Route Message\n[Round Robin]"
+LoadBalancer --> Consumer3 : "Route Message\n[Round Robin]"
+
+note right of Producer
+  Producer sends high volume
+  of messages to queue
+end note
+
+note top of LoadBalancer
+  Load balancer distributes
+  messages evenly across
+  healthy consumers
+end note
+
+note bottom of Consumer1
+  Consumers process messages
+  in parallel for better
+  throughput and scalability
+end note
+
+@enduml

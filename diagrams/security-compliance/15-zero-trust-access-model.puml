@@ -1,0 +1,246 @@
+@startuml
+!theme plain
+title Zero Trust Network Access (ZTNA) Model
+
+actor "User" as user
+participant "Device" as device
+participant "Identity Provider" as idp
+participant "Device Trust Service" as dts
+participant "Policy Engine" as policy
+participant "Zero Trust Gateway" as ztg
+participant "Context Analyzer" as context
+participant "Risk Engine" as risk
+participant "Application Gateway" as appgw
+participant "Protected Resource" as resource
+participant "Audit Logger" as audit
+participant "Threat Intelligence" as ti
+
+note over user, ti
+  Zero Trust: "Never trust, always verify"
+  Every access request is authenticated, authorized,
+  and continuously validated regardless of location
+end note
+
+== Initial Authentication ==
+
+user -> device: 1. Initiate access request\n(corporate application)
+activate device
+
+device -> device: 2. Device health check:\n- OS version\n- Security patches\n- Antivirus status\n- Compliance state
+
+device -> idp: 3. Authentication request\n(user credentials + device info)
+activate idp
+
+idp -> idp: 4. Multi-factor authentication:\n- Username/password\n- Biometric verification\n- Hardware token\n- Risk-based authentication
+
+alt Authentication Failed
+    idp --> device: 5a. Authentication denied\n(invalid credentials)
+    device -> audit: 6a. Log failed attempt\n(security event)
+    device --> user: 7a. Access denied\n(authentication failure)
+    deactivate idp
+    deactivate device
+else Authentication Successful
+    idp --> device: 5b. Authentication token\n(identity verified)
+end
+
+== Device Trust Verification ==
+
+device -> dts: 8. Device trust assessment\n(device fingerprint + health)
+activate dts
+
+dts -> dts: 9. Device evaluation:\n- Device registration\n- Certificate validation\n- Compliance posture\n- Security configuration\n- Patch level assessment
+
+alt Device Not Trusted
+    dts --> device: 10a. Device trust failed\n(non-compliant device)
+    device -> audit: 11a. Log device rejection\n(compliance violation)
+    device --> user: 12a. Access denied\n(device not trusted)
+    deactivate dts
+    deactivate idp
+    deactivate device
+else Device Trusted
+    dts --> device: 10b. Device trust verified\n(compliant device)
+    deactivate dts
+end
+
+== Context and Risk Analysis ==
+
+device -> context: 13. Submit access context\n(location, time, resource)
+activate context
+
+context -> context: 14. Context evaluation:\n- Geolocation analysis\n- Time-based access\n- Network location\n- Access patterns\n- Behavioral analysis
+
+context -> ti: 15. Threat intelligence check\n(IOCs, suspicious patterns)
+activate ti
+
+ti -> ti: 16. Threat assessment:\n- Known bad IPs\n- Malicious domains\n- Attack signatures\n- Compromise indicators
+
+ti --> context: 17. Threat intelligence data\n(risk indicators)
+deactivate ti
+
+context -> risk: 18. Risk calculation request\n(context + threat data)
+activate risk
+
+risk -> risk: 19. Risk scoring algorithm:\n- User behavior baseline\n- Access anomalies\n- Threat indicators\n- Historical patterns\n- Business impact
+
+risk --> context: 20. Risk score\n(0-100 risk level)
+deactivate risk
+
+context --> device: 21. Context analysis result\n(risk score + context)
+deactivate context
+
+== Policy Evaluation ==
+
+device -> policy: 22. Policy evaluation request\n(user + device + context + risk)
+activate policy
+
+policy -> policy: 23. Policy engine processing:\n- Role-based policies\n- Attribute-based access\n- Conditional access rules\n- Risk-based policies\n- Time-based restrictions
+
+alt High Risk / Policy Violation
+    policy --> device: 24a. Access denied\n(policy violation)
+    device -> audit: 25a. Log policy denial\n(access control event)
+    device --> user: 26a. Access blocked\n(insufficient privileges)
+    deactivate policy
+    deactivate idp
+    deactivate device
+else Policy Compliant
+    policy --> device: 24b. Policy approved\n(conditional access granted)
+end
+
+== Zero Trust Gateway ==
+
+device -> ztg: 27. Access request\n(authenticated + authorized)
+activate ztg
+
+ztg -> ztg: 28. Gateway validation:\n- Token verification\n- Session management\n- Traffic inspection\n- Protocol validation
+
+ztg -> appgw: 29. Forward to application\n(secure tunnel)
+activate appgw
+
+appgw -> appgw: 30. Application-level security:\n- API authentication\n- Input validation\n- Output filtering\n- Session management
+
+appgw -> resource: 31. Access protected resource\n(authorized request)
+activate resource
+
+resource -> resource: 32. Resource-level controls:\n- Data classification\n- Access logging\n- Content filtering\n- Usage monitoring
+
+resource --> appgw: 33. Resource response\n(requested data)
+deactivate resource
+
+appgw --> ztg: 34. Application response\n(processed data)
+deactivate appgw
+
+ztg --> device: 35. Secure response\n(encrypted tunnel)
+deactivate ztg
+
+device --> user: 36. Display resource\n(authorized access)
+deactivate policy
+deactivate idp
+deactivate device
+
+== Continuous Verification ==
+
+loop Continuous Monitoring
+    device -> context: 37. Periodic context update\n(ongoing verification)
+    activate device
+    activate context
+    
+    context -> context: 38. Monitor changes:\n    - Location drift\n    - Behavior anomalies\n    - Session duration\n    - Access patterns
+    
+    alt Context Changed Significantly
+        context -> risk: 39a. Re-evaluate risk\n(context change)
+        activate risk
+        
+        risk -> risk: 40a. Updated risk score\n(dynamic assessment)
+        
+        risk --> context: 41a. New risk level\n(increased/decreased)
+        deactivate risk
+        
+        context -> policy: 42a. Re-check policies\n(adaptive access)
+        activate policy
+        
+        alt Risk Too High
+            policy --> context: 43a. Revoke access\n(risk threshold exceeded)
+            context -> ztg: 44a. Terminate session\n(security action)
+            activate ztg
+            ztg -> device: 45a. Session terminated\n(access revoked)
+            deactivate ztg
+            device --> user: 46a. Access revoked\n(re-authentication required)
+        else Risk Acceptable
+            policy --> context: 43b. Continue access\n(risk within limits)
+        end
+        
+        deactivate policy
+    else Context Stable
+        context -> context: 39b. Continue monitoring\n(normal operation)
+    end
+    
+    deactivate context
+    deactivate device
+end
+
+== Audit and Compliance ==
+
+audit -> audit: 47. Comprehensive logging:\n- Authentication events\n- Authorization decisions\n- Access attempts\n- Policy violations\n- Risk assessments\n- Session activities
+
+audit -> audit: 48. Compliance reporting:\n- Access patterns\n- Security incidents\n- Policy effectiveness\n- Risk trends\n- Audit trails
+
+== Adaptive Security ==
+
+risk -> policy: 49. Update security policies\n(threat landscape changes)
+activate risk
+activate policy
+
+policy -> policy: 50. Policy adaptation:\n- Threat-based adjustments\n- Risk threshold tuning\n- Access rule updates\n- Behavioral baselines
+
+policy --> risk: 51. Policy updates applied\n(adaptive security)
+deactivate policy
+deactivate risk
+
+note right of idp
+  Identity Verification:
+  - Multi-factor authentication
+  - Biometric verification
+  - Certificate-based auth
+  - Risk-based authentication
+  - Continuous verification
+end note
+
+note right of dts
+  Device Trust Factors:
+  - Device registration
+  - Health attestation
+  - Compliance posture
+  - Security configuration
+  - Certificate validation
+end note
+
+note left of policy
+  Policy Types:
+  - Role-based access (RBAC)
+  - Attribute-based access (ABAC)
+  - Risk-based policies
+  - Conditional access
+  - Time-based restrictions
+end note
+
+note left of context
+  Context Factors:
+  - User location
+  - Device location
+  - Network context
+  - Time of access
+  - Behavioral patterns
+  - Application sensitivity
+end note
+
+note over ztg, resource
+  Zero Trust Principles:
+  1. Verify explicitly
+  2. Use least privilege access
+  3. Assume breach
+  4. Continuous verification
+  5. Encrypt everything
+  6. Analytics for visibility
+end note
+
+@enduml

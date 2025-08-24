@@ -1,0 +1,136 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+TITLE Security Hardening with Policies
+
+Person(user, "User", "External user")
+Person(admin, "Security Admin", "Security administrator")
+Person(developer, "Developer", "Application developer")
+
+System_Boundary(security_perimeter, "Security Perimeter") {
+  Container(waf, "Web Application Firewall", "AWS WAF/CloudFlare", "DDoS protection and filtering")
+  Container(cdn, "CDN with Security", "CloudFront/CloudFlare", "Edge security and caching")
+  Container(ddos_protection, "DDoS Protection", "AWS Shield/CloudFlare", "Network-level protection")
+}
+
+System_Boundary(k8s_cluster, "Hardened Kubernetes Cluster") {
+  System_Boundary(security_ns, "Security Namespace") {
+    Container(opa_gatekeeper, "OPA Gatekeeper", "Admission Controller", "Policy enforcement")
+    Container(falco, "Falco", "DaemonSet", "Runtime security monitoring")
+    Container(twistlock, "Twistlock/Prisma", "Security Platform", "Container security scanning")
+    Container(vault, "HashiCorp Vault", "Secret Management", "Secrets and PKI")
+    Container(cert_manager, "Cert Manager", "Certificate Controller", "TLS certificate automation")
+    Container(external_secrets, "External Secrets Operator", "Secret Sync", "External secret integration")
+  }
+  
+  System_Boundary(network_policies, "Network Security") {
+    Container(calico, "Calico", "CNI Plugin", "Network policies and encryption")
+    Container(cilium, "Cilium", "eBPF-based CNI", "Advanced network security")
+    Container(istio_security, "Istio Security", "Service Mesh Security", "mTLS and RBAC")
+    Container(network_policy, "Network Policies", "Kubernetes Resources", "Traffic segmentation")
+  }
+  
+  System_Boundary(rbac_security, "RBAC and Authentication") {
+    Container(rbac_policies, "RBAC Policies", "Kubernetes Resources", "Role-based access control")
+    Container(pod_security, "Pod Security Standards", "Admission Controller", "Pod security policies")
+    Container(service_accounts, "Service Accounts", "Kubernetes Resources", "Workload identity")
+    Container(oidc_provider, "OIDC Provider", "Keycloak/Auth0", "Identity provider")
+  }
+  
+  System_Boundary(apps_ns, "Applications Namespace") {
+    Container(ingress_ctrl, "Ingress Controller", "Nginx Ingress\nw/ ModSecurity", "Secure traffic routing")
+    
+    Container(user_svc, "User Service", "ClusterIP", "User management")
+    Container(user_pods, "User Pods", "Java, Spring Boot\nNon-root user\nRead-only filesystem", "Hardened user service")
+    
+    Container(product_svc, "Product Service", "ClusterIP", "Product catalog")
+    Container(product_pods, "Product Pods", "Go, Gin\nDistroless image\nSecurity context", "Hardened product service")
+    
+    Container(order_svc, "Order Service", "ClusterIP", "Order processing")
+    Container(order_pods, "Order Pods", "Java, Spring Boot\nSigned images\nResource limits", "Hardened order service")
+  }
+  
+  System_Boundary(scanning_ns, "Security Scanning") {
+    Container(trivy, "Trivy", "Vulnerability Scanner", "Image and filesystem scanning")
+    Container(clair, "Clair", "Static Analysis", "Container vulnerability analysis")
+    Container(anchore, "Anchore Engine", "Policy Engine", "Image policy enforcement")
+    Container(kube_bench, "Kube-bench", "CIS Benchmark", "Kubernetes security assessment")
+    Container(kube_hunter, "Kube-hunter", "Penetration Testing", "Security weakness detection")
+  }
+  
+  System_Boundary(compliance_ns, "Compliance and Auditing") {
+    Container(open_policy_agent, "Open Policy Agent", "Policy Engine", "Compliance policies")
+    Container(audit_logs, "Audit Logs", "Kubernetes Audit", "API server audit logging")
+    Container(compliance_operator, "Compliance Operator", "OpenShift Compliance", "Compliance scanning")
+    Container(starboard, "Starboard", "Security Toolkit", "Security report aggregation")
+  }
+  
+  System_Boundary(storage_ns, "Secure Storage") {
+    ContainerDb(encrypted_db, "Encrypted Database", "PostgreSQL\nTDE enabled\nEncrypted at rest", "Secure data storage")
+    Container(encrypted_pv, "Encrypted Persistent Volumes", "StorageClass\nEncryption at rest", "Encrypted storage")
+    Container(backup_encryption, "Encrypted Backups", "Velero\nEncrypted backups", "Secure backup storage")
+  }
+}
+
+System_Boundary(security_policies, "Security Policies") {
+  Container(pod_security_policy, "Pod Security Policy", "Kubernetes Policy", "Pod security constraints")
+  Container(network_security_policy, "Network Security Policy", "Calico/Cilium Policy", "Network traffic rules")
+  Container(admission_policies, "Admission Policies", "OPA Rego Policies", "Resource admission control")
+  Container(image_policies, "Image Policies", "Policy Rules", "Container image validation")
+  Container(rbac_matrix, "RBAC Matrix", "Access Control", "Permission matrix")
+}
+
+System_Boundary(monitoring_security, "Security Monitoring") {
+  Container(siem, "SIEM System", "Splunk/ELK", "Security event correlation")
+  Container(security_dashboard, "Security Dashboard", "Grafana", "Security metrics visualization")
+  Container(threat_detection, "Threat Detection", "ML-based Detection", "Anomaly detection")
+  Container(incident_response, "Incident Response", "PagerDuty/Opsgenie", "Security incident management")
+}
+
+Rel(user, waf, "HTTP/HTTPS requests", "HTTPS")
+Rel(waf, cdn, "Filtered traffic", "HTTPS")
+Rel(cdn, ingress_ctrl, "Clean traffic", "HTTPS")
+Rel(ddos_protection, waf, "Protected traffic", "Network Layer")
+Rel(ingress_ctrl, user_svc, "Authenticated requests", "HTTP")
+Rel(ingress_ctrl, product_svc, "Authenticated requests", "HTTP")
+Rel(ingress_ctrl, order_svc, "Authenticated requests", "HTTP")
+Rel(opa_gatekeeper, admission_policies, "Enforces policies", "Kubernetes API")
+Rel(opa_gatekeeper, user_pods, "Validates deployment", "Admission Webhook")
+Rel(opa_gatekeeper, product_pods, "Validates deployment", "Admission Webhook")
+Rel(opa_gatekeeper, order_pods, "Validates deployment", "Admission Webhook")
+Rel(falco, siem, "Security events", "HTTP/Syslog")
+Rel(twistlock, trivy, "Scan coordination", "API")
+Rel(trivy, user_pods, "Scans images", "Registry API")
+Rel(trivy, product_pods, "Scans images", "Registry API")
+Rel(trivy, order_pods, "Scans images", "Registry API")
+Rel(vault, external_secrets, "Provides secrets", "HTTP API")
+Rel(external_secrets, user_pods, "Injects secrets", "Kubernetes API")
+Rel(external_secrets, product_pods, "Injects secrets", "Kubernetes API")
+Rel(external_secrets, order_pods, "Injects secrets", "Kubernetes API")
+Rel(cert_manager, vault, "Certificate requests", "HTTP API")
+Rel(cert_manager, ingress_ctrl, "TLS certificates", "Kubernetes API")
+Rel(calico, network_security_policy, "Enforces policies", "iptables/eBPF")
+Rel(istio_security, user_pods, "mTLS encryption", "Envoy Proxy")
+Rel(istio_security, product_pods, "mTLS encryption", "Envoy Proxy")
+Rel(istio_security, order_pods, "mTLS encryption", "Envoy Proxy")
+Rel(rbac_policies, service_accounts, "Authorizes access", "Kubernetes RBAC")
+Rel(oidc_provider, rbac_policies, "Identity verification", "OIDC")
+Rel(pod_security, pod_security_policy, "Enforces constraints", "Admission Controller")
+Rel(kube_bench, compliance_operator, "Benchmark results", "API")
+Rel(kube_hunter, starboard, "Security findings", "CRD")
+Rel(audit_logs, siem, "Audit events", "Log Forwarding")
+Rel(user_pods, encrypted_db, "Secure connection", "TLS/JDBC")
+Rel(product_pods, encrypted_db, "Secure connection", "TLS/JDBC")
+Rel(order_pods, encrypted_db, "Secure connection", "TLS/JDBC")
+Rel(encrypted_pv, backup_encryption, "Encrypted data", "Encrypted Transfer")
+Rel(security_dashboard, falco, "Security metrics", "Prometheus")
+Rel(security_dashboard, twistlock, "Vulnerability metrics", "API")
+Rel(threat_detection, siem, "Analyzes events", "API")
+Rel(incident_response, threat_detection, "Alert escalation", "Webhook")
+Rel(admin, opa_gatekeeper, "Manages policies", "Kubernetes API")
+Rel(admin, vault, "Manages secrets", "HTTPS")
+Rel(admin, security_dashboard, "Monitors security", "HTTPS")
+Rel(developer, starboard, "Views security reports", "Kubernetes API")
+Rel(developer, trivy, "Scans images", "CLI/API")
+@enduml

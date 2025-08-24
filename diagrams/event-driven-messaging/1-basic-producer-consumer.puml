@@ -1,0 +1,32 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Basic Producer-Consumer Pattern
+
+!define RECTANGLE class
+
+RECTANGLE Producer {
+  + produceMessage()
+  + sendMessage()
+}
+
+RECTANGLE Consumer {
+  + receiveMessage()
+  + processMessage()
+}
+
+Producer --> Consumer : "Direct Message\n[Synchronous]"
+
+note right of Producer
+  Sends messages directly
+  to the consumer without
+  any intermediary broker
+end note
+
+note left of Consumer
+  Receives and processes
+  messages immediately
+  from the producer
+end note
+
+@enduml

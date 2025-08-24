@@ -1,0 +1,50 @@
+@startuml
+
+actor Frontend
+participant "Order Service"         as OrderService
+participant "Inventory Service"     as InventoryService
+participant "Payment Service"       as PaymentService
+participant "Shipping Service"      as ShippingService
+participant "Kafka Broker"          as Kafka
+
+Frontend -> OrderService : POST /orders\n{ order details }
+activate OrderService
+
+OrderService -> Kafka : publish OrderCreated(orderId, userId, items)
+activate Kafka
+Kafka --> OrderService : ACK
+deactivate Kafka
+
+OrderService -> InventoryService : checkStock(orderId, productId, qty)
+activate InventoryService
+InventoryService --> OrderService : { available: true }
+deactivate InventoryService
+
+OrderService -> Kafka : publish InventoryChecked(orderId, available)
+activate Kafka
+Kafka --> OrderService : ACK
+deactivate Kafka
+
+OrderService -> PaymentService : processPayment(orderId, paymentInfo)
+activate PaymentService
+PaymentService --> OrderService : { status: success, paymentId }
+deactivate PaymentService
+
+OrderService -> Kafka : publish PaymentProcessed(orderId, paymentId)
+activate Kafka
+Kafka --> OrderService : ACK
+deactivate Kafka
+
+OrderService -> ShippingService : scheduleShipping(orderId, address)
+activate ShippingService
+ShippingService --> OrderService : { status: scheduled, shipmentId }
+deactivate ShippingService
+
+OrderService -> Kafka : publish OrderShipped(orderId, shipmentId)
+activate Kafka
+Kafka --> OrderService : ACK
+deactivate Kafka
+
+OrderService --> Frontend : 201 Created\n{ orderId }
+deactivate OrderService
+@enduml

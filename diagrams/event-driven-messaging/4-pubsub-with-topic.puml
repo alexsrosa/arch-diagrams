@@ -1,0 +1,57 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Pub/Sub with Topic Pattern
+
+!define RECTANGLE class
+
+RECTANGLE Publisher {
+  + publishMessage()
+  + sendToTopic()
+}
+
+RECTANGLE Topic {
+  + publish(message)
+  + subscribe(subscriber)
+  + notify(subscribers)
+}
+
+RECTANGLE "Subscriber A" as SubscriberA {
+  + onMessage()
+  + processMessage()
+}
+
+RECTANGLE "Subscriber B" as SubscriberB {
+  + onMessage()
+  + processMessage()
+}
+
+RECTANGLE "Subscriber C" as SubscriberC {
+  + onMessage()
+  + processMessage()
+}
+
+Publisher --> Topic : "Publish Message\n[Broadcast]"
+Topic --> SubscriberA : "Notify\n[Push Message]"
+Topic --> SubscriberB : "Notify\n[Push Message]"
+Topic --> SubscriberC : "Notify\n[Push Message]"
+
+note right of Publisher
+  Publisher sends messages
+  to topic without knowing
+  about subscribers
+end note
+
+note top of Topic
+  Topic broadcasts messages
+  to all registered
+  subscribers simultaneously
+end note
+
+note bottom of SubscriberA
+  Each subscriber receives
+  a copy of every message
+  published to the topic
+end note
+
+@enduml

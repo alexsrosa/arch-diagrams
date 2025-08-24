@@ -1,0 +1,97 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+TITLE Service Mesh with Istio
+
+Person(user, "User", "Uses a web browser")
+
+System_Boundary(k8s_cluster, "Kubernetes Cluster with Istio Service Mesh") {
+  System_Boundary(istio_system, "Istio System Namespace") {
+    Container(istio_pilot, "Istio Pilot", "Control Plane\nDeployment", "Service discovery & configuration")
+    Container(istio_citadel, "Istio Citadel", "Security\nDeployment", "Certificate management & mTLS")
+    Container(istio_galley, "Istio Galley", "Configuration\nDeployment", "Configuration validation")
+    Container(istio_mixer, "Istio Mixer", "Telemetry & Policy\nDeployment", "Policy enforcement & telemetry")
+  }
+  
+  System_Boundary(gateway_ns, "Gateway Namespace") {
+    Container(istio_gateway, "Istio Gateway", "Envoy Proxy\nDeployment", "Ingress traffic management")
+    Container(virtual_service, "Virtual Service", "Istio CRD", "Traffic routing rules")
+    Container(destination_rule, "Destination Rule", "Istio CRD", "Load balancing & circuit breaker")
+  }
+  
+  System_Boundary(services_ns, "Services Namespace") {
+    Container(user_svc, "User Service", "ClusterIP", "User management")
+    Container(user_pods, "User Pods", "Java, Spring Boot\n+ Envoy Sidecar (3 replicas)", "Handles user operations")
+    Container(user_envoy, "User Envoy Sidecars", "Envoy Proxy", "mTLS, load balancing, telemetry")
+    
+    Container(product_svc, "Product Service", "ClusterIP", "Product catalog")
+    Container(product_pods, "Product Pods", "Go, Gin\n+ Envoy Sidecar (3 replicas)", "Manages products")
+    Container(product_envoy, "Product Envoy Sidecars", "Envoy Proxy", "mTLS, load balancing, telemetry")
+    
+    Container(order_svc, "Order Service", "ClusterIP", "Order processing")
+    Container(order_pods, "Order Pods", "Java, Spring Boot\n+ Envoy Sidecar (2 replicas)", "Processes orders")
+    Container(order_envoy, "Order Envoy Sidecars", "Envoy Proxy", "mTLS, load balancing, telemetry")
+  }
+  
+  System_Boundary(security_ns, "Security Namespace") {
+    Container(peer_auth, "PeerAuthentication", "Istio CRD", "mTLS policy enforcement")
+    Container(auth_policy, "AuthorizationPolicy", "Istio CRD", "Access control rules")
+    Container(service_entry, "ServiceEntry", "Istio CRD", "External service registration")
+  }
+  
+  System_Boundary(observability_ns, "Observability Namespace") {
+    Container(kiali, "Kiali", "Service Mesh UI\nDeployment", "Service mesh visualization")
+    Container(jaeger, "Jaeger", "Distributed Tracing\nDeployment", "Request tracing")
+    Container(prometheus, "Prometheus", "Metrics Collection\nDeployment", "Istio metrics")
+    Container(grafana, "Grafana", "Dashboards\nDeployment", "Istio dashboards")
+  }
+  
+  System_Boundary(storage_ns, "Storage Namespace") {
+    Container(db_pv, "Database PV", "Kubernetes PV", "Database storage")
+    Container(db_pvc, "Database PVC", "Kubernetes PVC", "Database storage claim")
+    ContainerDb(db_pod, "Database Pod", "PostgreSQL\nStateful Pod", "Shared database")
+  }
+}
+
+Rel(user, istio_gateway, "Accesses via", "HTTP/HTTPS")
+Rel(istio_gateway, virtual_service, "Uses routing rules", "Istio Config")
+Rel(virtual_service, user_svc, "Routes user requests", "HTTP")
+Rel(virtual_service, product_svc, "Routes product requests", "HTTP")
+Rel(virtual_service, order_svc, "Routes order requests", "HTTP")
+Rel(user_svc, user_pods, "Load balances", "HTTP")
+Rel(product_svc, product_pods, "Load balances", "HTTP")
+Rel(order_svc, order_pods, "Load balances", "HTTP")
+Rel(user_envoy, product_envoy, "Service-to-service", "mTLS/HTTP")
+Rel(user_envoy, order_envoy, "Service-to-service", "mTLS/HTTP")
+Rel(product_envoy, order_envoy, "Service-to-service", "mTLS/HTTP")
+Rel(istio_pilot, user_envoy, "Configuration", "xDS Protocol")
+Rel(istio_pilot, product_envoy, "Configuration", "xDS Protocol")
+Rel(istio_pilot, order_envoy, "Configuration", "xDS Protocol")
+Rel(istio_citadel, user_envoy, "Certificates", "SPIFFE")
+Rel(istio_citadel, product_envoy, "Certificates", "SPIFFE")
+Rel(istio_citadel, order_envoy, "Certificates", "SPIFFE")
+Rel(istio_mixer, user_envoy, "Telemetry & Policy", "gRPC")
+Rel(istio_mixer, product_envoy, "Telemetry & Policy", "gRPC")
+Rel(istio_mixer, order_envoy, "Telemetry & Policy", "gRPC")
+Rel(peer_auth, user_envoy, "Enforces mTLS", "Istio Config")
+Rel(peer_auth, product_envoy, "Enforces mTLS", "Istio Config")
+Rel(peer_auth, order_envoy, "Enforces mTLS", "Istio Config")
+Rel(auth_policy, user_envoy, "Access control", "Istio Config")
+Rel(auth_policy, product_envoy, "Access control", "Istio Config")
+Rel(auth_policy, order_envoy, "Access control", "Istio Config")
+Rel(destination_rule, user_envoy, "Load balancing rules", "Istio Config")
+Rel(destination_rule, product_envoy, "Load balancing rules", "Istio Config")
+Rel(destination_rule, order_envoy, "Load balancing rules", "Istio Config")
+Rel(kiali, istio_pilot, "Queries service topology", "Kubernetes API")
+Rel(jaeger, user_envoy, "Collects traces", "Jaeger Protocol")
+Rel(jaeger, product_envoy, "Collects traces", "Jaeger Protocol")
+Rel(jaeger, order_envoy, "Collects traces", "Jaeger Protocol")
+Rel(prometheus, istio_mixer, "Scrapes metrics", "HTTP")
+Rel(grafana, prometheus, "Queries metrics", "PromQL")
+Rel(user_pods, db_pod, "User data", "JDBC/SQL")
+Rel(product_pods, db_pod, "Product data", "JDBC/SQL")
+Rel(order_pods, db_pod, "Order data", "JDBC/SQL")
+Rel(db_pod, db_pvc, "Uses storage", "File System")
+Rel(db_pvc, db_pv, "Claims storage", "Storage API")
+@enduml

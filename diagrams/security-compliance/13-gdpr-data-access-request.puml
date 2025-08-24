@@ -1,0 +1,235 @@
+@startuml
+!theme plain
+title GDPR Data Subject Access Request (DSAR) Process
+
+actor "Data Subject" as user
+participant "Privacy Portal" as portal
+participant "Identity Verification" as idv
+participant "Request Manager" as manager
+participant "Data Discovery" as discovery
+database "User Database" as userdb
+database "Analytics Database" as analytics
+database "Archive Storage" as archive
+participant "Data Processor" as processor
+participant "Legal Review" as legal
+participant "Privacy Officer" as dpo
+participant "Audit Logger" as audit
+
+note over user, audit
+  GDPR Article 15 grants data subjects the right to access
+  their personal data and receive information about processing
+end note
+
+== Request Initiation ==
+
+user -> portal: 1. Access privacy portal\n(GDPR request form)
+activate portal
+
+portal -> portal: 2. Display request options:\n- Data access (Article 15)\n- Data portability (Article 20)\n- Data rectification (Article 16)\n- Data erasure (Article 17)
+
+user -> portal: 3. Submit access request\n(personal details + verification)
+
+portal -> audit: 4. Log DSAR initiation\n(timestamp, request_id, user_info)
+activate audit
+audit --> portal: 5. Request logged
+deactivate audit
+
+== Identity Verification ==
+
+portal -> idv: 6. Verify data subject identity\n(prevent unauthorized access)
+activate idv
+
+idv -> idv: 7. Multi-factor verification:\n- Email confirmation\n- Phone verification\n- Document upload (ID)\n- Security questions
+
+alt Identity Verification Failed
+    idv --> portal: 8a. Verification failed\n(insufficient proof)
+    portal -> audit: 9a. Log verification failure
+    portal --> user: 10a. Request additional verification\n(security requirements)
+    deactivate idv
+    deactivate portal
+else Identity Verified
+    idv --> portal: 8b. Identity confirmed\n(verified data subject)
+    deactivate idv
+end
+
+== Request Processing ==
+
+portal -> manager: 11. Process verified request\n(request_id, verified_identity)
+activate manager
+
+manager -> manager: 12. Validate request scope:\n- Legal basis check\n- Jurisdiction verification\n- Request complexity\n- Timeline requirements (30 days)
+
+manager -> legal: 13. Legal review\n(complex/sensitive requests)
+activate legal
+
+legal -> legal: 14. Assess legal implications:\n- Third-party data involved\n- Trade secrets protection\n- Other legal obligations\n- Exemptions applicability
+
+alt Legal Concerns Identified
+    legal --> manager: 15a. Legal restrictions\n(partial data disclosure)
+    manager -> dpo: 16a. Escalate to DPO\n(legal complexity)
+    activate dpo
+    dpo -> dpo: 17a. DPO decision:\n    - Balancing test\n    - Risk assessment\n    - Compliance strategy
+    dpo --> manager: 18a. Processing guidance\n(approved scope)
+    deactivate dpo
+else No Legal Issues
+    legal --> manager: 15b. Legal clearance\n(full data disclosure)
+end
+
+deactivate legal
+
+== Data Discovery and Collection ==
+
+manager -> discovery: 19. Initiate data discovery\n(comprehensive data search)
+activate discovery
+
+discovery -> userdb: 20. Query user data\n(profile, preferences, activity)
+activate userdb
+userdb --> discovery: 21. User account data\n(structured data)
+deactivate userdb
+
+discovery -> analytics: 22. Query analytics data\n(behavior, interactions)
+activate analytics
+analytics --> discovery: 23. Behavioral data\n(aggregated insights)
+deactivate analytics
+
+discovery -> archive: 24. Query archived data\n(historical records)
+activate archive
+archive --> discovery: 25. Historical data\n(backup systems)
+deactivate archive
+
+discovery -> discovery: 26. Data consolidation:\n- Remove duplicates\n- Verify data accuracy\n- Check data completeness\n- Identify data sources
+
+discovery --> manager: 27. Consolidated data set\n(all personal data found)
+deactivate discovery
+
+== Data Processing and Anonymization ==
+
+manager -> processor: 28. Process collected data\n(prepare for delivery)
+activate processor
+
+processor -> processor: 29. Data processing steps:\n- Remove third-party data\n- Redact sensitive information\n- Apply legal exemptions\n- Format for readability
+
+processor -> processor: 30. Generate data package:\n- Structured data export\n- Human-readable format\n- Metadata inclusion\n- Processing information
+
+processor --> manager: 31. Processed data package\n(GDPR-compliant format)
+deactivate processor
+
+== Quality Assurance ==
+
+manager -> manager: 32. Quality review:\n- Data accuracy verification\n- Completeness check\n- Format validation\n- Legal compliance review
+
+alt Quality Issues Found
+    manager -> discovery: 33a. Request data correction\n(missing/incorrect data)
+    activate discovery
+    discovery -> discovery: 34a. Correct data issues
+    discovery --> manager: 35a. Corrected data
+    deactivate discovery
+else Quality Approved
+    manager -> manager: 33b. Approve data package\n(ready for delivery)
+end
+
+== Data Delivery ==
+
+manager -> portal: 36. Prepare secure delivery\n(encrypted data package)
+activate portal
+
+portal -> portal: 37. Generate secure download:\n- Encrypt data package\n- Create time-limited link\n- Set access controls\n- Generate access token
+
+portal -> user: 38. Notify data ready\n(secure download instructions)
+
+user -> portal: 39. Access data package\n(authenticated download)
+
+portal -> audit: 40. Log data delivery\n(completion timestamp)
+activate audit
+audit --> portal: 41. Delivery logged
+deactivate audit
+
+portal --> user: 42. Download data package\n(encrypted ZIP file)
+deactivate portal
+
+== Request Completion ==
+
+manager -> manager: 43. Complete request processing:\n- Update request status\n- Calculate processing time\n- Document any issues\n- Prepare compliance report
+
+manager -> audit: 44. Log request completion\n(full audit trail)
+activate audit
+audit --> manager: 45. Completion logged
+deactivate audit
+
+manager -> dpo: 46. Report to DPO\n(compliance metrics)
+activate dpo
+
+dpo -> dpo: 47. Review compliance:\n- Timeline adherence\n- Data completeness\n- Process effectiveness\n- Improvement opportunities
+
+dpo --> manager: 48. Compliance confirmed\n(process approved)
+deactivate dpo
+
+deactivate manager
+
+== Follow-up and Retention ==
+
+note over manager, audit
+  Data Package Contents:
+  - Personal data inventory
+  - Processing purposes
+  - Data sources
+  - Retention periods
+  - Third-party sharing
+  - Data transfers
+end note
+
+manager -> manager: 49. Retention management:\n- Store request records (3 years)\n- Delete temporary data copies\n- Update data inventory\n- Monitor for corrections
+
+alt User Requests Corrections
+    user -> portal: 50a. Submit correction request\n(Article 16 - rectification)
+    activate portal
+    portal -> manager: 51a. Process correction\n(update personal data)
+    activate manager
+    manager -> userdb: 52a. Update user data
+    manager --> portal: 53a. Corrections applied
+    deactivate manager
+    portal --> user: 54a. Confirmation sent
+    deactivate portal
+else No Further Action
+    manager -> manager: 50b. Monitor for future requests\n(ongoing compliance)
+end
+
+note right of idv
+  Identity Verification:
+  - Multi-factor authentication
+  - Document verification
+  - Biometric confirmation
+  - Risk-based assessment
+  - Fraud prevention
+end note
+
+note right of discovery
+  Data Discovery Scope:
+  - Production databases
+  - Data warehouses
+  - Backup systems
+  - Log files
+  - Third-party systems
+  - Cloud storage
+end note
+
+note left of processor
+  Data Processing:
+  - Pseudonymization
+  - Anonymization
+  - Redaction
+  - Format conversion
+  - Metadata enrichment
+  - Quality assurance
+end note
+
+note left of legal
+  Legal Considerations:
+  - Trade secrets protection
+  - Third-party rights
+  - National security exemptions
+  - Ongoing legal proceedings
+  - Regulatory restrictions
+end note
+
+@enduml

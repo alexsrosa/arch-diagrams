@@ -1,0 +1,132 @@
+@startuml
+!theme plain
+title API Gateway Security with JWT Validation
+
+actor "Client Application" as client
+participant "API Gateway" as gateway
+participant "Authentication Service" as auth
+participant "User Service" as userservice
+participant "Order Service" as orderservice
+participant "Payment Service" as paymentservice
+
+note over client, paymentservice
+  API Gateway acts as security enforcement point,
+  validating JWTs before forwarding to microservices
+end note
+
+== Token Acquisition ==
+
+client -> auth: 1. Login request\n(username, password)
+activate auth
+
+auth -> auth: 2. Validate credentials
+
+auth --> client: 3. JWT token\n(access_token, expires_in)
+deactivate auth
+
+== Secured API Request ==
+
+client -> gateway: 4. API request\n(Authorization: Bearer <JWT>)
+activate gateway
+
+== JWT Validation at Gateway ==
+
+gateway -> gateway: 5. Extract JWT from header
+
+alt JWT Validation Method 1: Local Validation
+    gateway -> gateway: 6a. Validate JWT signature\n(using public key)
+    
+    gateway -> gateway: 7a. Check JWT claims:\n- Expiration (exp)\n- Issuer (iss)\n- Audience (aud)\n- Not before (nbf)
+    
+else JWT Validation Method 2: Remote Validation
+    gateway -> auth: 6b. Validate JWT\n(token introspection)
+    activate auth
+    auth --> gateway: 7b. Token validation result\n(active, scope, user_id)
+    deactivate auth
+end
+
+alt JWT Valid
+    gateway -> gateway: 8a. Extract user context\n(user_id, roles, permissions)
+    
+    gateway -> gateway: 9a. Apply rate limiting\n(per user/client)
+    
+    gateway -> gateway: 10a. Check API permissions\n(route-based authorization)
+    
+    == Forward to Microservice ==
+    
+    alt Request to User Service
+        gateway -> userservice: 11a. Forward request\n(+ user context headers)
+        activate userservice
+        userservice --> gateway: 12a. Response data
+        deactivate userservice
+        
+    else Request to Order Service
+        gateway -> orderservice: 11b. Forward request\n(+ user context headers)
+        activate orderservice
+        orderservice --> gateway: 12b. Response data
+        deactivate orderservice
+        
+    else Request to Payment Service
+        gateway -> paymentservice: 11c. Forward request\n(+ user context headers)
+        activate paymentservice
+        paymentservice --> gateway: 12c. Response data
+        deactivate paymentservice
+    end
+    
+    gateway --> client: 13a. API response\n(requested data)
+    
+else JWT Invalid/Expired
+    gateway --> client: 8b. 401 Unauthorized\n("Invalid or expired token")
+    
+else Insufficient Permissions
+    gateway --> client: 8c. 403 Forbidden\n("Insufficient permissions")
+    
+else Rate Limit Exceeded
+    gateway --> client: 8d. 429 Too Many Requests\n("Rate limit exceeded")
+end
+
+deactivate gateway
+
+== Audit and Monitoring ==
+
+gateway -> gateway: 14. Log request details\n(user_id, endpoint, response_code)
+
+note right of gateway
+  Gateway Security Features:
+  - JWT signature validation
+  - Token expiration checking
+  - Rate limiting per user/client
+  - Route-based authorization
+  - Request/response logging
+  - CORS handling
+  - Request size limits
+end note
+
+note right of auth
+  JWT Claims:
+  - sub (subject/user_id)
+  - iss (issuer)
+  - aud (audience)
+  - exp (expiration)
+  - iat (issued at)
+  - scope (permissions)
+  - roles (user roles)
+end note
+
+note left of client
+  Client Responsibilities:
+  - Secure token storage
+  - Token refresh handling
+  - Proper error handling
+  - Include token in all requests
+end note
+
+note over userservice, paymentservice
+  Microservices Benefits:
+  - No authentication logic needed
+  - Receive validated user context
+  - Focus on business logic
+  - Consistent security enforcement
+end note
+
+@enduml
