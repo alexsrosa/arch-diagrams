@@ -7,11 +7,10 @@ Java project with Maven for creating and automatically generating architecture d
 ```
 arch-diagrams/
 ├── src/
-│   ├── main/java/com/example/archdiagrams/    # Main code
-│   └── test/java/com/example/archdiagrams/    # Unit tests
-├── diagrams/                                   # .puml files
-│   ├── c4-context-example.puml               # C4 Context diagram example
-│   └── c4-container-example.puml             # C4 Container diagram example
+│   ├── main/java/com/example/archdiagrams/   # Main code
+│   └── test/java/com/example/archdiagrams/   # Unit tests
+├── diagrams/                                 # .puml files
+│   ├── *.puml                                # All diagrams 
 ├── docs/
 │   └── generated-diagrams/                   # Automatically generated images
 ├── pom.xml                                    # Maven configuration
@@ -22,7 +21,7 @@ arch-diagrams/
 
 ### Prerequisites
 
-- Java 11 or higher
+- Java 21 or higher
 - Maven 3.6 or higher
 - Graphviz (optional, for more complex diagrams)
 

@@ -1,0 +1,177 @@
+@startuml API Gateway with Rate Limiting
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title API Gateway with Rate Limiting and Traffic Shaping
+
+Person(user_free, "Free Tier User", "User with basic access limits")
+Person(user_premium, "Premium User", "User with higher rate limits")
+Person(user_enterprise, "Enterprise User", "User with custom rate limits")
+Person(bot_traffic, "Bot/Scraper", "Automated traffic (potentially malicious)")
+
+System_Boundary(edge, "Edge Protection") {
+    Container(waf, "Web Application Firewall", "AWS WAF/CloudFlare", "DDoS protection and bot detection")
+    Container(ddos_protection, "DDoS Protection", "CloudFlare/Akamai", "Traffic filtering and rate limiting")
+}
+
+System_Boundary(gateway, "API Gateway Layer") {
+    Container(api_gateway, "API Gateway", "Kong/AWS API Gateway", "Central entry point with rate limiting")
+    Container(rate_limiter, "Rate Limiter", "Redis-based Limiter", "Distributed rate limiting engine")
+    Container(auth_service, "Authentication Service", "OAuth2/JWT", "User authentication and authorization")
+    Container(quota_manager, "Quota Manager", "Redis/Database", "API quota and usage tracking")
+}
+
+System_Boundary(policies, "Rate Limiting Policies") {
+    Container(global_limits, "Global Limits", "Policy Engine", "System-wide rate limits")
+    Container(user_limits, "User-based Limits", "Policy Engine", "Per-user rate limits")
+    Container(api_limits, "API-specific Limits", "Policy Engine", "Per-endpoint rate limits")
+    Container(ip_limits, "IP-based Limits", "Policy Engine", "Per-IP address limits")
+}
+
+System_Boundary(services, "Microservices Layer") {
+    Container(user_service, "User Service", "Node.js", "User management (100 req/min per user)")
+    Container(product_service, "Product Service", "Java/Spring", "Product catalog (500 req/min per user)")
+    Container(order_service, "Order Service", "Python/FastAPI", "Order processing (50 req/min per user)")
+    Container(search_service, "Search Service", "Elasticsearch", "Search functionality (200 req/min per user)")
+}
+
+System_Boundary(data, "Data Layer") {
+    ContainerDb(user_db, "User Database", "PostgreSQL", "User profiles and subscription tiers")
+    ContainerDb(analytics_db, "Analytics Database", "ClickHouse", "API usage analytics")
+    Container(redis_cluster, "Redis Cluster", "Redis", "Rate limiting counters and quotas")
+}
+
+System_Boundary(monitoring, "Monitoring & Analytics") {
+    Container(metrics, "Metrics Collector", "Prometheus", "Rate limiting metrics")
+    Container(dashboard, "Dashboard", "Grafana", "Real-time rate limiting dashboard")
+    Container(alerting, "Alerting", "AlertManager", "Rate limit breach notifications")
+}
+
+System_Boundary(responses, "Rate Limit Responses") {
+    Container(throttle_response, "Throttle Response", "HTTP 429", "Too Many Requests response")
+    Container(queue_system, "Request Queue", "RabbitMQ", "Queue for throttled requests")
+}
+
+' User traffic flow
+Rel(user_free, waf, "Requests (100 req/min)", "HTTPS")
+Rel(user_premium, waf, "Requests (1000 req/min)", "HTTPS")
+Rel(user_enterprise, waf, "Requests (10000 req/min)", "HTTPS")
+Rel(bot_traffic, waf, "Automated requests", "HTTPS")
+
+' Edge protection
+Rel(waf, ddos_protection, "Filtered traffic", "HTTP")
+Rel(ddos_protection, api_gateway, "Clean traffic", "HTTP")
+
+' API Gateway processing
+Rel(api_gateway, auth_service, "Validates token", "HTTP")
+Rel(api_gateway, rate_limiter, "Checks limits", "Redis Protocol")
+Rel(api_gateway, quota_manager, "Updates usage", "Redis Protocol")
+
+' Rate limiting policies
+Rel(rate_limiter, global_limits, "Applies global limits", "Internal")
+Rel(rate_limiter, user_limits, "Applies user limits", "Internal")
+Rel(rate_limiter, api_limits, "Applies API limits", "Internal")
+Rel(rate_limiter, ip_limits, "Applies IP limits", "Internal")
+
+' Policy data sources
+Rel(user_limits, user_db, "Gets user tier", "SQL")
+Rel(quota_manager, redis_cluster, "Stores counters", "Redis Protocol")
+
+' Successful requests to services
+Rel(api_gateway, user_service, "Allowed requests", "HTTP")
+Rel(api_gateway, product_service, "Allowed requests", "HTTP")
+Rel(api_gateway, order_service, "Allowed requests", "HTTP")
+Rel(api_gateway, search_service, "Allowed requests", "HTTP")
+
+' Rate limited responses
+Rel(rate_limiter, throttle_response, "Rate limit exceeded", "HTTP 429")
+Rel(rate_limiter, queue_system, "Queues excess requests", "AMQP")
+
+' Service database connections
+Rel(user_service, user_db, "Reads/Writes", "SQL")
+Rel(product_service, user_db, "Reads user data", "SQL")
+Rel(order_service, user_db, "Reads user data", "SQL")
+
+' Analytics and monitoring
+Rel(api_gateway, analytics_db, "Logs requests", "HTTP")
+Rel(rate_limiter, metrics, "Rate limit metrics", "HTTP")
+Rel(metrics, dashboard, "Visualizes data", "HTTP")
+Rel(metrics, alerting, "Triggers alerts", "HTTP")
+
+' Queue processing
+Rel(queue_system, api_gateway, "Retries requests", "HTTP")
+
+note right of api_gateway
+  **Rate Limiting Strategies:**
+  • Token bucket algorithm
+  • Sliding window counter
+  • Fixed window counter
+  • Leaky bucket algorithm
+  • Distributed rate limiting
+end note
+
+note right of rate_limiter
+  **Rate Limit Tiers:**
+  • Free: 100 req/min, 1000 req/day
+  • Premium: 1000 req/min, 50000 req/day
+  • Enterprise: 10000 req/min, unlimited daily
+  • Bot detection: 10 req/min max
+end note
+
+note left of global_limits
+  **Global Protection:**
+  • System-wide: 100,000 req/min
+  • Per-service: 25,000 req/min
+  • Emergency throttling: 50% capacity
+  • Circuit breaker integration
+end note
+
+note left of throttle_response
+  **HTTP 429 Response:**
+  ```
+  {
+    "error": "Rate limit exceeded",
+    "retry_after": 60,
+    "limit": 100,
+    "remaining": 0,
+    "reset_time": "2024-01-15T10:30:00Z"
+  }
+  ```
+end note
+
+note right of quota_manager
+  **Usage Tracking:**
+  • Real-time counter updates
+  • Sliding window calculations
+  • Quota reset scheduling
+  • Usage analytics
+  • Billing integration
+end note
+
+note left of waf
+  **Edge Protection Features:**
+  • Bot detection and blocking
+  • IP reputation filtering
+  • Geographic restrictions
+  • Request size limits
+  • Malicious payload detection
+end note
+
+note right of dashboard
+  **Monitoring Metrics:**
+  • Requests per second by tier
+  • Rate limit hit ratios
+  • Top rate-limited IPs
+  • API endpoint usage patterns
+  • System capacity utilization
+end note
+
+note left of queue_system
+  **Request Queuing:**
+  • Priority-based queuing
+  • Exponential backoff
+  • Dead letter queue
+  • Queue depth monitoring
+  • Automatic retry logic
+end note
+
+@enduml

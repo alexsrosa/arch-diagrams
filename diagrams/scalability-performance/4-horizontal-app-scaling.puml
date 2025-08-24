@@ -1,0 +1,130 @@
+@startuml Horizontal Application Scaling
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!define FONTAWESOME https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/font-awesome-5
+!include DEVICONS/react.puml
+!include DEVICONS/java.puml
+!include DEVICONS/postgresql.puml
+!include DEVICONS/nginx.puml
+!include FONTAWESOME/users.puml
+!include FONTAWESOME/server.puml
+!include FONTAWESOME/database.puml
+!include FONTAWESOME/chart_line.puml
+
+title Horizontal Application Scaling Architecture
+
+Person(users, "Users", "Multiple concurrent users generating varying load", $sprite="users")
+
+System_Boundary(lb_boundary, "Load Balancing Layer") {
+    Container(app_lb, "Application Load Balancer", "AWS ALB/NGINX Plus", "Intelligent request distribution with health checks", $sprite="nginx")
+}
+
+System_Boundary(app_boundary, "Horizontally Scaled Application Tier") {
+    Container(app_1, "App Instance 1", "Java Spring Boot", "Stateless application server handling business logic", $sprite="java")
+    Container(app_2, "App Instance 2", "Java Spring Boot", "Identical application instance for load distribution", $sprite="java")
+    Container(app_3, "App Instance 3", "Java Spring Boot", "Additional instance for peak load handling", $sprite="java")
+    Container(app_4, "App Instance 4", "Java Spring Boot", "Auto-scaled instance based on metrics", $sprite="java")
+    Container(app_5, "App Instance 5", "Java Spring Boot", "Extra capacity for high availability", $sprite="java")
+}
+
+System_Boundary(data_boundary, "Shared Data Layer") {
+    ContainerDb(shared_db, "Shared Database", "PostgreSQL Cluster", "Centralized data storage with connection pooling", $sprite="postgresql")
+}
+
+System_Boundary(monitoring_boundary, "Monitoring & Auto-Scaling") {
+    Container(metrics_collector, "Metrics Collector", "Prometheus/CloudWatch", "Collects performance and load metrics", $sprite="chart_line")
+    Container(auto_scaler, "Auto Scaler", "Kubernetes HPA/AWS ASG", "Automatically scales instances based on load", $sprite="server")
+}
+
+' User traffic
+Rel(users, app_lb, "HTTP/HTTPS Requests", "Variable load patterns")
+
+' Load balancer distribution
+Rel(app_lb, app_1, "Distributes Load", "Round-robin/Least connections")
+Rel(app_lb, app_2, "Distributes Load", "Health-checked routing")
+Rel(app_lb, app_3, "Distributes Load", "Weighted distribution")
+Rel(app_lb, app_4, "Distributes Load", "Dynamic routing")
+Rel(app_lb, app_5, "Distributes Load", "Failover ready")
+
+' Application to database connections
+Rel(app_1, shared_db, "SQL Queries", "Connection pool")
+Rel(app_2, shared_db, "SQL Queries", "Connection pool")
+Rel(app_3, shared_db, "SQL Queries", "Connection pool")
+Rel(app_4, shared_db, "SQL Queries", "Connection pool")
+Rel(app_5, shared_db, "SQL Queries", "Connection pool")
+
+' Monitoring and metrics
+Rel(app_1, metrics_collector, "Performance Metrics", "CPU/Memory/Response time")
+Rel(app_2, metrics_collector, "Performance Metrics", "CPU/Memory/Response time")
+Rel(app_3, metrics_collector, "Performance Metrics", "CPU/Memory/Response time")
+Rel(app_4, metrics_collector, "Performance Metrics", "CPU/Memory/Response time")
+Rel(app_5, metrics_collector, "Performance Metrics", "CPU/Memory/Response time")
+Rel(app_lb, metrics_collector, "Load Metrics", "Request rate/Latency")
+
+' Auto-scaling decisions
+Rel(metrics_collector, auto_scaler, "Aggregated Metrics", "Scaling triggers")
+Rel(auto_scaler, app_boundary, "Scale Actions", "Add/Remove instances")
+
+' Health checks
+Rel(app_lb, app_1, "Health Checks", "HTTP/TCP probes")
+Rel(app_lb, app_2, "Health Checks", "HTTP/TCP probes")
+Rel(app_lb, app_3, "Health Checks", "HTTP/TCP probes")
+Rel(app_lb, app_4, "Health Checks", "HTTP/TCP probes")
+Rel(app_lb, app_5, "Health Checks", "HTTP/TCP probes")
+
+note right of app_lb
+  **Load Balancing Features:**
+  • Health-based routing
+  • Sticky sessions (if needed)
+  • SSL termination
+  • Request rate limiting
+  • Geographic routing
+end note
+
+note right of app_1
+  **Application Design:**
+  • Stateless architecture
+  • Shared-nothing design
+  • Connection pooling
+  • Graceful shutdown
+  • Resource optimization
+end note
+
+note right of shared_db
+  **Database Considerations:**
+  • Connection pool limits
+  • Query optimization
+  • Index management
+  • Lock contention
+  • Performance monitoring
+end note
+
+note right of auto_scaler
+  **Auto-Scaling Triggers:**
+  • CPU utilization > 70%
+  • Memory usage > 80%
+  • Request queue depth
+  • Response time > SLA
+  • Custom business metrics
+end note
+
+note top of app_boundary
+  **Horizontal Scaling Benefits:**
+  • Linear capacity increase
+  • Fault tolerance
+  • Cost optimization
+  • Elastic resource usage
+  • Performance consistency
+end note
+
+note bottom of data_boundary
+  **Scaling Challenges:**
+  • Database bottleneck
+  • Connection pool exhaustion
+  • Data consistency
+  • Session management
+  • Configuration synchronization
+end note
+
+@enduml

@@ -1,0 +1,182 @@
+@startuml Write-Read Splitting Architecture
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Write-Read Splitting for Database Performance Optimization
+
+Person(user, "User", "Application user")
+Person(admin, "Admin", "System administrator")
+
+System_Boundary(frontend, "Frontend Layer") {
+    Container(web_app, "Web Application", "React/Vue.js", "User interface")
+    Container(mobile_app, "Mobile App", "React Native", "Mobile interface")
+    Container(admin_panel, "Admin Panel", "Angular", "Administrative interface")
+}
+
+System_Boundary(gateway, "API Gateway Layer") {
+    Container(api_gateway, "API Gateway", "Kong/Zuul", "Request routing and authentication")
+    Container(query_router, "Query Router", "Custom Service", "Intelligent query routing based on operation type")
+}
+
+System_Boundary(services, "Application Services") {
+    Container(user_service, "User Service", "Java/Spring Boot", "User management operations")
+    Container(product_service, "Product Service", "Node.js", "Product catalog operations")
+    Container(order_service, "Order Service", "Python/Django", "Order processing operations")
+    Container(analytics_service, "Analytics Service", "Go", "Read-heavy analytics queries")
+}
+
+System_Boundary(data_access, "Data Access Layer") {
+    Container(write_dao, "Write DAO", "Data Access Object", "Write operations only")
+    Container(read_dao, "Read DAO", "Data Access Object", "Read operations only")
+    Container(connection_pool_write, "Write Pool", "HikariCP", "Write connection pool")
+    Container(connection_pool_read, "Read Pool", "HikariCP", "Read connection pool")
+}
+
+System_Boundary(database, "Database Cluster") {
+    ContainerDb(primary_db, "Primary Database", "PostgreSQL", "Write operations + immediate reads")
+    ContainerDb(read_replica_1, "Read Replica 1", "PostgreSQL", "Read operations - Region A")
+    ContainerDb(read_replica_2, "Read Replica 2", "PostgreSQL", "Read operations - Region B")
+    ContainerDb(read_replica_3, "Read Replica 3", "PostgreSQL", "Analytics queries")
+}
+
+System_Boundary(caching, "Caching Layer") {
+    Container(redis_write, "Redis Write Cache", "Redis", "Write-through cache")
+    Container(redis_read, "Redis Read Cache", "Redis", "Read cache with TTL")
+}
+
+System_Boundary(monitoring, "Monitoring & Health") {
+    Container(db_monitor, "DB Monitor", "Prometheus", "Database performance metrics")
+    Container(replication_monitor, "Replication Monitor", "Custom Service", "Replication lag monitoring")
+    Container(query_analyzer, "Query Analyzer", "pg_stat_statements", "Query performance analysis")
+}
+
+' User interactions
+Rel(user, web_app, "Browse products, view orders", "HTTPS")
+Rel(user, mobile_app, "Mobile shopping", "HTTPS")
+Rel(admin, admin_panel, "Manage system, view reports", "HTTPS")
+
+' Frontend to API Gateway
+Rel(web_app, api_gateway, "API requests", "HTTPS")
+Rel(mobile_app, api_gateway, "API requests", "HTTPS")
+Rel(admin_panel, api_gateway, "Admin API requests", "HTTPS")
+
+' API Gateway to Query Router
+Rel(api_gateway, query_router, "Route based on operation type", "HTTP")
+
+' Query Router to Services
+Rel(query_router, user_service, "User operations", "HTTP")
+Rel(query_router, product_service, "Product operations", "HTTP")
+Rel(query_router, order_service, "Order operations", "HTTP")
+Rel(query_router, analytics_service, "Analytics queries", "HTTP")
+
+' Services to Data Access Layer
+Rel(user_service, write_dao, "CREATE, UPDATE, DELETE users", "Internal")
+Rel(user_service, read_dao, "SELECT user data", "Internal")
+Rel(product_service, write_dao, "Manage products", "Internal")
+Rel(product_service, read_dao, "Browse products", "Internal")
+Rel(order_service, write_dao, "Process orders", "Internal")
+Rel(order_service, read_dao, "Order history", "Internal")
+Rel(analytics_service, read_dao, "Complex analytics queries", "Internal")
+
+' Data Access to Connection Pools
+Rel(write_dao, connection_pool_write, "Get write connection", "JDBC")
+Rel(read_dao, connection_pool_read, "Get read connection", "JDBC")
+
+' Connection Pools to Databases
+Rel(connection_pool_write, primary_db, "Write operations", "PostgreSQL Protocol")
+Rel(connection_pool_read, read_replica_1, "Read operations", "PostgreSQL Protocol")
+Rel(connection_pool_read, read_replica_2, "Read operations", "PostgreSQL Protocol")
+Rel(connection_pool_read, read_replica_3, "Analytics queries", "PostgreSQL Protocol")
+
+' Database replication
+Rel(primary_db, read_replica_1, "Streaming replication", "WAL")
+Rel(primary_db, read_replica_2, "Streaming replication", "WAL")
+Rel(primary_db, read_replica_3, "Logical replication", "WAL")
+
+' Caching integration
+Rel(write_dao, redis_write, "Cache write operations", "Redis Protocol")
+Rel(read_dao, redis_read, "Cache read results", "Redis Protocol")
+Rel(redis_write, redis_read, "Invalidate cache on writes", "Redis Protocol")
+
+' Monitoring relationships
+Rel(primary_db, db_monitor, "Primary DB metrics", "SQL")
+Rel(read_replica_1, db_monitor, "Replica 1 metrics", "SQL")
+Rel(read_replica_2, db_monitor, "Replica 2 metrics", "SQL")
+Rel(read_replica_3, db_monitor, "Replica 3 metrics", "SQL")
+Rel(replication_monitor, primary_db, "Check replication status", "SQL")
+Rel(replication_monitor, read_replica_1, "Monitor lag", "SQL")
+Rel(query_analyzer, primary_db, "Analyze query performance", "SQL")
+
+note right of query_router
+  **Query Routing Logic:**
+  • SELECT queries → Read replicas
+  • INSERT/UPDATE/DELETE → Primary DB
+  • Transactions → Primary DB
+  • Analytics queries → Dedicated replica
+  • Recent writes → Primary DB (read-after-write)
+  • Load balancing across read replicas
+end note
+
+note right of primary_db
+  **Primary Database (Write Master):**
+  • Handles all write operations
+  • Immediate read consistency
+  • Single source of truth
+  • WAL streaming to replicas
+  • Connection limit: 100 connections
+end note
+
+note right of read_replica_1
+  **Read Replicas Configuration:**
+  • Replica 1: General read queries
+  • Replica 2: Geographic distribution
+  • Replica 3: Analytics workload
+  • Async replication (eventual consistency)
+  • Read-only mode enforced
+end note
+
+note left of write_dao
+  **Write DAO Responsibilities:**
+  • Routes to primary database only
+  • Handles transactions
+  • Cache invalidation on writes
+  • Write-through caching
+  • Connection pooling for writes
+end note
+
+note left of read_dao
+  **Read DAO Responsibilities:**
+  • Routes to read replicas
+  • Load balances read queries
+  • Implements read-after-write consistency
+  • Cache-aside pattern
+  • Fallback to primary on replica failure
+end note
+
+note right of replication_monitor
+  **Replication Monitoring:**
+  • Lag detection (< 1 second target)
+  • Automatic failover triggers
+  • Health check endpoints
+  • Replica promotion capability
+  • Alert on replication breaks
+end note
+
+note left of redis_read
+  **Caching Strategy:**
+  • Write-through for critical data
+  • Cache-aside for read queries
+  • TTL-based expiration
+  • Cache warming strategies
+  • Distributed cache invalidation
+end note
+
+note right of analytics_service
+  **Analytics Workload Isolation:**
+  • Dedicated read replica
+  • Complex aggregation queries
+  • Reporting and dashboards
+  • Historical data analysis
+  • No impact on transactional workload
+end note
+
+@enduml

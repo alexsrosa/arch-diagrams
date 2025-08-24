@@ -1,0 +1,89 @@
+@startuml Basic Monolithic Scaling
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!define FONTAWESOME https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/font-awesome-5
+!include DEVICONS/react.puml
+!include DEVICONS/java.puml
+!include DEVICONS/postgresql.puml
+!include FONTAWESOME/users.puml
+!include FONTAWESOME/server.puml
+!include FONTAWESOME/database.puml
+
+title Basic Monolithic Application Scaling with Load Balancer
+
+Person(users, "Users", "End users accessing the application", $sprite="users")
+
+System_Boundary(lb_boundary, "Load Balancing Layer") {
+    Container(load_balancer, "Load Balancer", "NGINX/HAProxy", "Distributes incoming requests across multiple application instances", $sprite="server")
+}
+
+System_Boundary(app_boundary, "Application Layer") {
+    Container(app_server_1, "App Server 1", "Java Spring Boot", "Monolithic application instance handling business logic", $sprite="java")
+    Container(app_server_2, "App Server 2", "Java Spring Boot", "Identical monolithic application instance for redundancy", $sprite="java")
+}
+
+System_Boundary(data_boundary, "Data Layer") {
+    ContainerDb(database, "Primary Database", "PostgreSQL", "Stores all application data with ACID properties", $sprite="postgresql")
+}
+
+' User interactions
+Rel(users, load_balancer, "HTTP/HTTPS Requests", "Web traffic")
+
+' Load balancer distribution
+Rel(load_balancer, app_server_1, "Routes Requests", "Round-robin/Least connections")
+Rel(load_balancer, app_server_2, "Routes Requests", "Round-robin/Least connections")
+
+' Application to database
+Rel(app_server_1, database, "SQL Queries", "JDBC/Connection Pool")
+Rel(app_server_2, database, "SQL Queries", "JDBC/Connection Pool")
+
+' Response flow
+Rel(app_server_1, load_balancer, "HTTP Responses", "JSON/HTML")
+Rel(app_server_2, load_balancer, "HTTP Responses", "JSON/HTML")
+Rel(load_balancer, users, "HTTP Responses", "Web content")
+
+note right of load_balancer
+  **Load Balancing Strategies:**
+  • Round Robin
+  • Least Connections
+  • IP Hash
+  • Health Checks
+  • Session Affinity (if needed)
+end note
+
+note right of app_server_1
+  **Application Characteristics:**
+  • Stateless design preferred
+  • Identical deployments
+  • Shared configuration
+  • Connection pooling
+  • Horizontal scaling ready
+end note
+
+note right of database
+  **Database Considerations:**
+  • Single point of failure
+  • Connection limit constraints
+  • ACID compliance
+  • Backup and recovery
+  • Performance monitoring
+end note
+
+note top of app_boundary
+  **Scaling Benefits:**
+  • Increased throughput
+  • Fault tolerance
+  • Load distribution
+  • Better resource utilization
+end note
+
+note bottom of data_boundary
+  **Current Limitations:**
+  • Database bottleneck
+  • No read scaling
+  • Single failure point
+  • Connection pool limits
+end note
+
+@enduml

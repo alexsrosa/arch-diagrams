@@ -1,0 +1,117 @@
+@startuml Database Read Replicas
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!define FONTAWESOME https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/font-awesome-5
+!include DEVICONS/react.puml
+!include DEVICONS/java.puml
+!include DEVICONS/postgresql.puml
+!include FONTAWESOME/users.puml
+!include FONTAWESOME/server.puml
+!include FONTAWESOME/database.puml
+!include FONTAWESOME/sync.puml
+
+title Database Read Replicas for Scaling Read Operations
+
+Person(users, "Users", "End users performing read and write operations", $sprite="users")
+
+System_Boundary(lb_boundary, "Load Balancing Layer") {
+    Container(load_balancer, "Load Balancer", "NGINX/HAProxy", "Distributes requests with health checks", $sprite="server")
+}
+
+System_Boundary(app_boundary, "Application Layer") {
+    Container(app_server_1, "App Server 1", "Java Spring Boot", "Monolithic application with read/write routing logic", $sprite="java")
+    Container(app_server_2, "App Server 2", "Java Spring Boot", "Identical instance with database routing capabilities", $sprite="java")
+}
+
+System_Boundary(data_boundary, "Data Layer") {
+    ContainerDb(primary_db, "Primary Database", "PostgreSQL Master", "Handles all write operations and critical reads", $sprite="postgresql")
+    ContainerDb(read_replica, "Read Replica", "PostgreSQL Slave", "Handles read-only queries for scaling", $sprite="database")
+}
+
+System_Boundary(replication_boundary, "Replication Layer") {
+    Container(replication_service, "Replication Service", "PostgreSQL Streaming", "Asynchronous data replication from master to slave", $sprite="sync")
+}
+
+' User interactions
+Rel(users, load_balancer, "HTTP/HTTPS Requests", "Read & Write operations")
+
+' Load balancer distribution
+Rel(load_balancer, app_server_1, "Routes Requests", "Balanced distribution")
+Rel(load_balancer, app_server_2, "Routes Requests", "Balanced distribution")
+
+' Write operations (to primary)
+Rel(app_server_1, primary_db, "Write Queries", "INSERT/UPDATE/DELETE")
+Rel(app_server_2, primary_db, "Write Queries", "INSERT/UPDATE/DELETE")
+
+' Read operations (to replica)
+Rel(app_server_1, read_replica, "Read Queries", "SELECT statements")
+Rel(app_server_2, read_replica, "Read Queries", "SELECT statements")
+
+' Critical reads (to primary for consistency)
+Rel(app_server_1, primary_db, "Critical Reads", "Consistent data required")
+Rel(app_server_2, primary_db, "Critical Reads", "Consistent data required")
+
+' Database replication
+Rel(primary_db, replication_service, "WAL Streaming", "Transaction logs")
+Rel(replication_service, read_replica, "Data Sync", "Replicated data")
+
+' Response flows
+Rel(primary_db, app_server_1, "Write Results", "Success/Error")
+Rel(primary_db, app_server_2, "Write Results", "Success/Error")
+Rel(read_replica, app_server_1, "Read Results", "Query data")
+Rel(read_replica, app_server_2, "Read Results", "Query data")
+
+note right of app_server_1
+  **Application Logic:**
+  • Route writes to primary DB
+  • Route reads to replica DB
+  • Handle replication lag
+  • Fallback to primary if needed
+  • Connection pool management
+end note
+
+note right of primary_db
+  **Primary Database:**
+  • All write operations
+  • Critical consistent reads
+  • Transaction coordination
+  • WAL generation
+  • Backup source
+end note
+
+note right of read_replica
+  **Read Replica:**
+  • Read-only operations
+  • Eventually consistent
+  • Reduced primary load
+  • Geographic distribution
+  • Reporting queries
+end note
+
+note right of replication_service
+  **Replication Features:**
+  • Streaming replication
+  • Asynchronous by default
+  • Lag monitoring
+  • Automatic failover ready
+  • Point-in-time recovery
+end note
+
+note top of data_boundary
+  **Scaling Benefits:**
+  • Distributed read load
+  • Improved read performance
+  • Reduced primary DB pressure
+  • Better resource utilization
+end note
+
+note bottom of data_boundary
+  **Considerations:**
+  • Replication lag
+  • Eventual consistency
+  • Application complexity
+  • Monitoring requirements
+end note
+
+@enduml

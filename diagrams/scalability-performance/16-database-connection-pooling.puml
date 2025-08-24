@@ -1,0 +1,176 @@
+@startuml Database Connection Pooling
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Sequence.puml
+
+title Database Connection Pooling for Efficient Load Handling
+
+Person(user1, "User 1", "Client making request")
+Person(user2, "User 2", "Client making request")
+Person(user3, "User 3", "Client making request")
+
+System_Boundary(load_balancer, "Load Balancer") {
+    Container(lb, "Load Balancer", "HAProxy/ALB", "Distributes requests")
+}
+
+System_Boundary(app_tier, "Application Tier") {
+    Container(app1, "App Instance 1", "Java/Spring Boot", "Application server with connection pool")
+    Container(app2, "App Instance 2", "Java/Spring Boot", "Application server with connection pool")
+    Container(app3, "App Instance 3", "Java/Spring Boot", "Application server with connection pool")
+}
+
+System_Boundary(pool_layer, "Connection Pool Layer") {
+    Container(pool1, "Connection Pool 1", "HikariCP/C3P0", "Pool: 10 connections")
+    Container(pool2, "Connection Pool 2", "HikariCP/C3P0", "Pool: 10 connections")
+    Container(pool3, "Connection Pool 3", "HikariCP/C3P0", "Pool: 10 connections")
+}
+
+System_Boundary(db_cluster, "Database Cluster") {
+    ContainerDb(db_primary, "Primary DB", "PostgreSQL", "Write operations")
+    ContainerDb(db_replica1, "Read Replica 1", "PostgreSQL", "Read operations")
+    ContainerDb(db_replica2, "Read Replica 2", "PostgreSQL", "Read operations")
+}
+
+System_Boundary(monitoring, "Connection Pool Monitoring") {
+    Container(metrics, "Pool Metrics", "Prometheus", "Connection pool statistics")
+    Container(dashboard, "Dashboard", "Grafana", "Pool utilization visualization")
+    Container(alerts, "Alerting", "AlertManager", "Pool exhaustion alerts")
+}
+
+' Request flow sequence
+user1 -> lb : 1. HTTP Request
+activate lb
+lb -> app1 : 2. Route to App 1
+activate app1
+app1 -> pool1 : 3. Get connection from pool
+activate pool1
+pool1 -> db_primary : 4. Use existing connection
+activate db_primary
+db_primary --> pool1 : 5. Query result
+deactivate db_primary
+pool1 --> app1 : 6. Return connection to pool
+deactivate pool1
+app1 --> lb : 7. HTTP Response
+deactivate app1
+lb --> user1 : 8. Response
+deactivate lb
+
+' Concurrent request handling
+user2 -> lb : 9. Concurrent Request
+activate lb
+lb -> app2 : 10. Route to App 2
+activate app2
+app2 -> pool2 : 11. Get connection from pool
+activate pool2
+pool2 -> db_replica1 : 12. Use pooled connection
+activate db_replica1
+db_replica1 --> pool2 : 13. Read result
+deactivate db_replica1
+pool2 --> app2 : 14. Return connection
+deactivate pool2
+app2 --> lb : 15. Response
+deactivate app2
+lb --> user2 : 16. Response
+deactivate lb
+
+' High load scenario
+user3 -> lb : 17. High load request
+activate lb
+lb -> app3 : 18. Route to App 3
+activate app3
+app3 -> pool3 : 19. Request connection (pool busy)
+activate pool3
+note right of pool3 : Pool at capacity,\nrequest waits in queue
+pool3 -> db_replica2 : 20. Wait for available connection
+activate db_replica2
+db_replica2 --> pool3 : 21. Connection available
+deactivate db_replica2
+pool3 --> app3 : 22. Connection acquired
+deactivate pool3
+app3 --> lb : 23. Response (after wait)
+deactivate app3
+lb --> user3 : 24. Response
+deactivate lb
+
+' Connection pool relationships
+app1 <--> pool1 : Manages pool lifecycle
+app2 <--> pool2 : Manages pool lifecycle
+app3 <--> pool3 : Manages pool lifecycle
+
+' Database connections
+pool1 <--> db_primary : 5 write connections
+pool1 <--> db_replica1 : 3 read connections
+pool1 <--> db_replica2 : 2 read connections
+
+pool2 <--> db_primary : 3 write connections
+pool2 <--> db_replica1 : 4 read connections
+pool2 <--> db_replica2 : 3 read connections
+
+pool3 <--> db_primary : 4 write connections
+pool3 <--> db_replica1 : 3 read connections
+pool3 <--> db_replica2 : 3 read connections
+
+' Monitoring relationships
+pool1 --> metrics : Pool statistics
+pool2 --> metrics : Pool statistics
+pool3 --> metrics : Pool statistics
+metrics --> dashboard : Visualize metrics
+metrics --> alerts : Trigger alerts
+
+note over pool1, pool3
+  **Connection Pool Configuration:**
+  • Maximum pool size: 10 connections
+  • Minimum idle connections: 2
+  • Connection timeout: 30 seconds
+  • Idle timeout: 10 minutes
+  • Max lifetime: 30 minutes
+  • Leak detection threshold: 60 seconds
+end note
+
+note over db_primary, db_replica2
+  **Database Connection Limits:**
+  • Primary DB: max_connections = 200
+  • Each Replica: max_connections = 150
+  • Reserved connections: 20 (admin)
+  • Connection pooling reduces total connections
+  • Prevents connection exhaustion
+end note
+
+note over metrics, alerts
+  **Pool Monitoring Metrics:**
+  • Active connections count
+  • Idle connections count
+  • Connection wait time
+  • Pool utilization percentage
+  • Connection creation rate
+  • Connection leak detection
+  • Query execution time
+end note
+
+note left of app1
+  **Connection Pool Benefits:**
+  • Reduces connection overhead
+  • Prevents connection exhaustion
+  • Improves response times
+  • Enables connection reuse
+  • Provides connection lifecycle management
+  • Supports connection validation
+end note
+
+note right of lb
+  **Load Distribution Strategy:**
+  • Round-robin across app instances
+  • Health check integration
+  • Session affinity (if needed)
+  • Automatic failover
+  • Connection draining during deployment
+end note
+
+note over user1, user3
+  **Concurrent Request Handling:**
+  • Multiple users served simultaneously
+  • Connection pools prevent blocking
+  • Efficient resource utilization
+  • Graceful degradation under load
+  • Queue management for peak traffic
+end note
+
+@enduml

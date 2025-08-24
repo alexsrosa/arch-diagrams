@@ -1,0 +1,210 @@
+@startuml Kubernetes Service Mesh Architecture
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Kubernetes with Istio Service Mesh for Advanced Microservices Management
+
+Person(user, "User", "Application user")
+Person(admin, "Admin", "System administrator")
+
+System_Boundary(ingress, "Ingress Layer") {
+    Container(istio_gateway, "Istio Gateway", "Envoy Proxy", "External traffic entry point")
+    Container(cert_manager, "Cert Manager", "Let's Encrypt", "TLS certificate management")
+}
+
+System_Boundary(control_plane, "Istio Control Plane") {
+    Container(istiod, "Istiod", "Istio Daemon", "Service mesh control plane")
+    Container(pilot, "Pilot", "Traffic Management", "Service discovery and configuration")
+    Container(citadel, "Citadel", "Security", "Certificate and key management")
+    Container(galley, "Galley", "Configuration", "Configuration validation and distribution")
+}
+
+System_Boundary(data_plane, "Service Mesh Data Plane") {
+    System_Boundary(namespace_prod, "Production Namespace") {
+        Container(user_service, "User Service", "Java/Spring Boot", "User management microservice")
+        Container(user_proxy, "User Sidecar", "Envoy Proxy", "Traffic proxy for user service")
+        
+        Container(product_service, "Product Service", "Node.js", "Product catalog microservice")
+        Container(product_proxy, "Product Sidecar", "Envoy Proxy", "Traffic proxy for product service")
+        
+        Container(order_service, "Order Service", "Python/Django", "Order processing microservice")
+        Container(order_proxy, "Order Sidecar", "Envoy Proxy", "Traffic proxy for order service")
+        
+        Container(payment_service, "Payment Service", "Go", "Payment processing microservice")
+        Container(payment_proxy, "Payment Sidecar", "Envoy Proxy", "Traffic proxy for payment service")
+    }
+    
+    System_Boundary(namespace_staging, "Staging Namespace") {
+        Container(user_service_v2, "User Service v2", "Java/Spring Boot", "New version for canary deployment")
+        Container(user_proxy_v2, "User Sidecar v2", "Envoy Proxy", "Traffic proxy for user service v2")
+    }
+}
+
+System_Boundary(observability, "Observability Stack") {
+    Container(jaeger, "Jaeger", "Distributed Tracing", "Request tracing across services")
+    Container(prometheus, "Prometheus", "Metrics Collection", "Service mesh metrics")
+    Container(grafana, "Grafana", "Visualization", "Metrics dashboards")
+    Container(kiali, "Kiali", "Service Mesh UI", "Service mesh topology and health")
+}
+
+System_Boundary(data_layer, "Data Layer") {
+    ContainerDb(user_db, "User Database", "PostgreSQL", "User data storage")
+    ContainerDb(product_db, "Product Database", "PostgreSQL", "Product catalog data")
+    ContainerDb(order_db, "Order Database", "PostgreSQL", "Order transaction data")
+    Container(redis_cache, "Redis Cache", "Redis Cluster", "Distributed caching")
+    Container(message_queue, "Message Queue", "Apache Kafka", "Async messaging")
+}
+
+System_Boundary(security, "Security Components") {
+    Container(oauth_server, "OAuth Server", "Keycloak", "Authentication and authorization")
+    Container(vault, "HashiCorp Vault", "Secret Management", "Secrets and certificate storage")
+    Container(policy_engine, "Policy Engine", "Open Policy Agent", "Authorization policies")
+}
+
+' User traffic flow
+Rel(user, istio_gateway, "HTTPS requests", "TLS 1.3")
+Rel(admin, kiali, "Monitor service mesh", "HTTPS")
+
+' Ingress and TLS
+Rel(istio_gateway, cert_manager, "TLS certificates", "ACME Protocol")
+Rel(istio_gateway, user_proxy, "Route to user service", "HTTP/2")
+Rel(istio_gateway, product_proxy, "Route to product service", "HTTP/2")
+
+' Control plane management
+Rel(istiod, pilot, "Service discovery", "gRPC")
+Rel(istiod, citadel, "Certificate management", "gRPC")
+Rel(istiod, galley, "Configuration validation", "gRPC")
+
+' Control plane to data plane
+Rel(pilot, user_proxy, "Traffic rules", "xDS API")
+Rel(pilot, product_proxy, "Traffic rules", "xDS API")
+Rel(pilot, order_proxy, "Traffic rules", "xDS API")
+Rel(pilot, payment_proxy, "Traffic rules", "xDS API")
+Rel(pilot, user_proxy_v2, "Canary traffic rules", "xDS API")
+
+Rel(citadel, user_proxy, "mTLS certificates", "SDS API")
+Rel(citadel, product_proxy, "mTLS certificates", "SDS API")
+Rel(citadel, order_proxy, "mTLS certificates", "SDS API")
+Rel(citadel, payment_proxy, "mTLS certificates", "SDS API")
+
+' Sidecar to service communication
+Rel(user_proxy, user_service, "Local traffic", "HTTP")
+Rel(product_proxy, product_service, "Local traffic", "HTTP")
+Rel(order_proxy, order_service, "Local traffic", "HTTP")
+Rel(payment_proxy, payment_service, "Local traffic", "HTTP")
+Rel(user_proxy_v2, user_service_v2, "Local traffic", "HTTP")
+
+' Inter-service communication through proxies
+Rel(user_proxy, product_proxy, "Service-to-service (mTLS)", "HTTP/2")
+Rel(order_proxy, user_proxy, "Service-to-service (mTLS)", "HTTP/2")
+Rel(order_proxy, product_proxy, "Service-to-service (mTLS)", "HTTP/2")
+Rel(order_proxy, payment_proxy, "Service-to-service (mTLS)", "HTTP/2")
+
+' Canary deployment traffic
+Rel(user_proxy, user_proxy_v2, "10% canary traffic", "HTTP/2")
+
+' Services to data layer
+Rel(user_service, user_db, "User queries", "PostgreSQL")
+Rel(product_service, product_db, "Product queries", "PostgreSQL")
+Rel(order_service, order_db, "Order queries", "PostgreSQL")
+Rel(user_service, redis_cache, "Cache operations", "Redis Protocol")
+Rel(order_service, message_queue, "Order events", "Kafka Protocol")
+
+' Observability data collection
+Rel(user_proxy, jaeger, "Distributed traces", "HTTP")
+Rel(product_proxy, jaeger, "Distributed traces", "HTTP")
+Rel(order_proxy, jaeger, "Distributed traces", "HTTP")
+Rel(payment_proxy, jaeger, "Distributed traces", "HTTP")
+
+Rel(user_proxy, prometheus, "Metrics", "HTTP")
+Rel(product_proxy, prometheus, "Metrics", "HTTP")
+Rel(order_proxy, prometheus, "Metrics", "HTTP")
+Rel(payment_proxy, prometheus, "Metrics", "HTTP")
+
+Rel(prometheus, grafana, "Query metrics", "PromQL")
+Rel(kiali, prometheus, "Service mesh metrics", "PromQL")
+Rel(kiali, jaeger, "Trace data", "HTTP")
+
+' Security integrations
+Rel(istio_gateway, oauth_server, "Token validation", "OIDC")
+Rel(citadel, vault, "Certificate storage", "Vault API")
+Rel(user_proxy, policy_engine, "Authorization policies", "OPA API")
+Rel(order_proxy, policy_engine, "Authorization policies", "OPA API")
+
+note right of istio_gateway
+  **Istio Gateway Features:**
+  • External traffic management
+  • TLS termination
+  • Virtual service routing
+  • Rate limiting
+  • Request authentication
+  • CORS handling
+end note
+
+note right of istiod
+  **Istio Control Plane:**
+  • Service discovery
+  • Configuration distribution
+  • Certificate management
+  • Policy enforcement
+  • Telemetry collection
+  • Traffic management
+end note
+
+note left of user_proxy
+  **Envoy Sidecar Capabilities:**
+  • Automatic mTLS
+  • Load balancing
+  • Circuit breaking
+  • Retry logic
+  • Request routing
+  • Metrics collection
+  • Distributed tracing
+end note
+
+note right of namespace_staging
+  **Canary Deployment:**
+  • Traffic splitting (90/10)
+  • A/B testing support
+  • Gradual rollout
+  • Automatic rollback
+  • Performance comparison
+  • Risk mitigation
+end note
+
+note left of jaeger
+  **Distributed Tracing:**
+  • End-to-end request tracking
+  • Performance bottleneck identification
+  • Service dependency mapping
+  • Error root cause analysis
+  • Latency analysis
+end note
+
+note right of kiali
+  **Service Mesh Observability:**
+  • Service topology visualization
+  • Traffic flow analysis
+  • Configuration validation
+  • Security policy verification
+  • Performance metrics
+end note
+
+note left of policy_engine
+  **Authorization Policies:**
+  • Fine-grained access control
+  • JWT token validation
+  • Service-to-service authorization
+  • Request context evaluation
+  • Policy as code
+end note
+
+note right of prometheus
+  **Service Mesh Metrics:**
+  • Request rate and latency
+  • Error rates
+  • Service health
+  • Resource utilization
+  • Custom business metrics
+end note
+
+@enduml

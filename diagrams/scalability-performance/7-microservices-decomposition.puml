@@ -1,0 +1,171 @@
+@startuml Microservices Decomposition Architecture
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!define FONTAWESOME https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/font-awesome-5
+!include DEVICONS/react.puml
+!include DEVICONS/java.puml
+!include DEVICONS/nodejs.puml
+!include DEVICONS/python.puml
+!include DEVICONS/postgresql.puml
+!include DEVICONS/redis.puml
+!include DEVICONS/nginx.puml
+!include FONTAWESOME/users.puml
+!include FONTAWESOME/server.puml
+!include FONTAWESOME/database.puml
+!include FONTAWESOME/shopping_cart.puml
+!include FONTAWESOME/user_circle.puml
+!include FONTAWESOME/box.puml
+!include FONTAWESOME/cloud.puml
+
+title Microservices Decomposition from Monolith
+
+Person(users, "Application Users", "Customers using the e-commerce platform", $sprite="users")
+
+System_Boundary(cdn_boundary, "Content Delivery") {
+    Container(cdn, "CDN", "CloudFlare/AWS CloudFront", "Global content delivery for static assets", $sprite="cloud")
+}
+
+System_Boundary(frontend_boundary, "Frontend Layer") {
+    Container(web_app, "Web Application", "React SPA", "Single-page application with microservice integration", $sprite="react")
+    Container(mobile_app, "Mobile App", "React Native", "Mobile application for iOS/Android", $sprite="react")
+}
+
+System_Boundary(gateway_boundary, "API Gateway Layer") {
+    Container(api_gateway, "API Gateway", "Kong/AWS API Gateway", "Central entry point for all microservices", $sprite="server")
+}
+
+System_Boundary(microservices_boundary, "Microservices Layer") {
+    Container(user_service, "User Service", "Java Spring Boot", "User management, authentication, profiles", $sprite="user_circle")
+    Container(product_service, "Product Service", "Node.js Express", "Product catalog, inventory, search", $sprite="box")
+    Container(order_service, "Order Service", "Python FastAPI", "Order processing, payment, fulfillment", $sprite="shopping_cart")
+}
+
+System_Boundary(cache_boundary, "Distributed Caching") {
+    Container(user_cache, "User Cache", "Redis", "User sessions and profile cache", $sprite="redis")
+    Container(product_cache, "Product Cache", "Redis", "Product catalog and search cache", $sprite="redis")
+    Container(order_cache, "Order Cache", "Redis", "Shopping cart and order cache", $sprite="redis")
+}
+
+System_Boundary(data_boundary, "Database Layer") {
+    ContainerDb(user_db, "User Database", "PostgreSQL", "User accounts, profiles, authentication", $sprite="postgresql")
+    ContainerDb(product_db, "Product Database", "PostgreSQL", "Product catalog, inventory, categories", $sprite="postgresql")
+    ContainerDb(order_db, "Order Database", "PostgreSQL", "Orders, payments, transaction history", $sprite="postgresql")
+}
+
+System_Boundary(monitoring_boundary, "Cross-Cutting Concerns") {
+    Container(service_discovery, "Service Discovery", "Consul/Eureka", "Service registration and discovery", $sprite="server")
+    Container(config_server, "Config Server", "Spring Cloud Config", "Centralized configuration management", $sprite="server")
+    Container(monitoring, "Monitoring", "Prometheus + Grafana", "Metrics collection and visualization", $sprite="server")
+}
+
+' User interactions
+Rel(users, cdn, "Static Assets", "CSS, JS, Images")
+Rel(users, web_app, "Web Interface", "HTTPS")
+Rel(users, mobile_app, "Mobile Interface", "HTTPS")
+
+' Frontend to API Gateway
+Rel(web_app, api_gateway, "API Requests", "RESTful calls")
+Rel(mobile_app, api_gateway, "API Requests", "RESTful calls")
+
+' API Gateway routing to microservices
+Rel(api_gateway, user_service, "User Operations", "/api/users/*")
+Rel(api_gateway, product_service, "Product Operations", "/api/products/*")
+Rel(api_gateway, order_service, "Order Operations", "/api/orders/*")
+
+' Inter-service communication
+Rel(order_service, user_service, "User Validation", "REST API calls")
+Rel(order_service, product_service, "Product Info", "REST API calls")
+Rel(product_service, user_service, "User Preferences", "REST API calls")
+
+' Microservices to caches
+Rel(user_service, user_cache, "Cache Operations", "Session/Profile data")
+Rel(product_service, product_cache, "Cache Operations", "Catalog/Search results")
+Rel(order_service, order_cache, "Cache Operations", "Cart/Order data")
+
+' Microservices to databases
+Rel(user_service, user_db, "User Data", "CRUD operations")
+Rel(product_service, product_db, "Product Data", "CRUD operations")
+Rel(order_service, order_db, "Order Data", "CRUD operations")
+
+' Service discovery and configuration
+Rel(user_service, service_discovery, "Register/Discover", "Service endpoints")
+Rel(product_service, service_discovery, "Register/Discover", "Service endpoints")
+Rel(order_service, service_discovery, "Register/Discover", "Service endpoints")
+Rel(api_gateway, service_discovery, "Service Lookup", "Dynamic routing")
+
+Rel(user_service, config_server, "Configuration", "Runtime config")
+Rel(product_service, config_server, "Configuration", "Runtime config")
+Rel(order_service, config_server, "Configuration", "Runtime config")
+
+' Monitoring
+Rel(user_service, monitoring, "Metrics", "Performance data")
+Rel(product_service, monitoring, "Metrics", "Performance data")
+Rel(order_service, monitoring, "Metrics", "Performance data")
+Rel(api_gateway, monitoring, "Metrics", "Gateway metrics")
+
+note right of api_gateway
+  **API Gateway Features:**
+  • Request routing
+  • Load balancing
+  • Rate limiting
+  • Authentication/Authorization
+  • Request/Response transformation
+  • Circuit breaker
+end note
+
+note right of user_service
+  **User Service Responsibilities:**
+  • User registration/login
+  • Profile management
+  • Authentication tokens
+  • User preferences
+  • Account settings
+end note
+
+note right of product_service
+  **Product Service Responsibilities:**
+  • Product catalog
+  • Inventory management
+  • Search functionality
+  • Product recommendations
+  • Category management
+end note
+
+note right of order_service
+  **Order Service Responsibilities:**
+  • Shopping cart
+  • Order processing
+  • Payment integration
+  • Order fulfillment
+  • Transaction history
+end note
+
+note top of microservices_boundary
+  **Microservices Benefits:**
+  • Independent deployment
+  • Technology diversity
+  • Team autonomy
+  • Fault isolation
+  • Scalability per service
+end note
+
+note bottom of data_boundary
+  **Database Per Service:**
+  • Data ownership
+  • Schema independence
+  • Technology choice
+  • Scaling flexibility
+  • Failure isolation
+end note
+
+note left of monitoring_boundary
+  **Distributed System Challenges:**
+  • Service discovery
+  • Configuration management
+  • Distributed tracing
+  • Circuit breakers
+  • Health monitoring
+end note
+
+@enduml

@@ -1,0 +1,176 @@
+@startuml Multi-Region Deployment
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Multi-Region Deployment Architecture
+
+Person(user_us, "US Users", "Users from North America")
+Person(user_eu, "EU Users", "Users from Europe")
+
+System_Boundary(global, "Global Layer") {
+    Container(global_lb, "Global Load Balancer", "AWS Route 53/Cloudflare", "DNS-based traffic routing with health checks")
+    Container(cdn, "Global CDN", "CloudFront/CloudFlare", "Content delivery network with global edge locations")
+}
+
+System_Boundary(us_region, "US East Region (Primary)") {
+    Container(us_alb, "Application Load Balancer", "AWS ALB/Azure LB", "Regional load balancer")
+    
+    System_Boundary(us_services, "US Microservices") {
+        Container(us_user_svc, "User Service", "Node.js", "User management - US instances")
+        Container(us_order_svc, "Order Service", "Java", "Order processing - US instances")
+        Container(us_product_svc, "Product Service", "Python", "Product catalog - US instances")
+    }
+    
+    System_Boundary(us_data, "US Data Layer") {
+        ContainerDb(us_primary_db, "Primary Database", "PostgreSQL", "Master database for writes")
+        ContainerDb(us_read_replica, "Read Replica", "PostgreSQL", "Local read replica")
+        Container(us_redis, "Redis Cache", "Redis Cluster", "Regional cache cluster")
+    }
+    
+    Container(us_queue, "Message Queue", "RabbitMQ", "Regional message broker")
+}
+
+System_Boundary(eu_region, "EU West Region (Secondary)") {
+    Container(eu_alb, "Application Load Balancer", "AWS ALB/Azure LB", "Regional load balancer")
+    
+    System_Boundary(eu_services, "EU Microservices") {
+        Container(eu_user_svc, "User Service", "Node.js", "User management - EU instances")
+        Container(eu_order_svc, "Order Service", "Java", "Order processing - EU instances")
+        Container(eu_product_svc, "Product Service", "Python", "Product catalog - EU instances")
+    }
+    
+    System_Boundary(eu_data, "EU Data Layer") {
+        ContainerDb(eu_read_replica, "Read Replica", "PostgreSQL", "Cross-region read replica")
+        ContainerDb(eu_standby_db, "Standby Database", "PostgreSQL", "Hot standby for failover")
+        Container(eu_redis, "Redis Cache", "Redis Cluster", "Regional cache cluster")
+    }
+    
+    Container(eu_queue, "Message Queue", "RabbitMQ", "Regional message broker")
+}
+
+System_Boundary(replication, "Cross-Region Replication") {
+    Container(db_replication, "Database Replication", "PostgreSQL Streaming", "Async replication between regions")
+    Container(cache_sync, "Cache Synchronization", "Redis Sentinel", "Cache invalidation across regions")
+    Container(queue_federation, "Queue Federation", "RabbitMQ Federation", "Message routing between regions")
+}
+
+System_Boundary(monitoring, "Global Monitoring") {
+    Container(health_check, "Health Monitoring", "Datadog/New Relic", "Cross-region health checks")
+    Container(metrics, "Metrics Aggregation", "Prometheus/Grafana", "Global metrics dashboard")
+}
+
+' User traffic routing
+Rel(user_us, global_lb, "Requests", "HTTPS")
+Rel(user_eu, global_lb, "Requests", "HTTPS")
+
+' Global load balancer routing
+Rel(global_lb, cdn, "Static content", "HTTPS")
+Rel(global_lb, us_alb, "Routes US traffic", "HTTPS")
+Rel(global_lb, eu_alb, "Routes EU traffic", "HTTPS")
+
+' US Region flow
+Rel(us_alb, us_user_svc, "Load balances", "HTTP")
+Rel(us_alb, us_order_svc, "Load balances", "HTTP")
+Rel(us_alb, us_product_svc, "Load balances", "HTTP")
+
+' US services to data
+Rel(us_user_svc, us_primary_db, "Writes", "SQL")
+Rel(us_user_svc, us_read_replica, "Reads", "SQL")
+Rel(us_order_svc, us_primary_db, "Writes", "SQL")
+Rel(us_order_svc, us_redis, "Cache", "Redis")
+Rel(us_product_svc, us_read_replica, "Reads", "SQL")
+Rel(us_product_svc, us_redis, "Cache", "Redis")
+
+' US messaging
+Rel(us_order_svc, us_queue, "Publishes", "AMQP")
+Rel(us_queue, us_user_svc, "Notifies", "AMQP")
+
+' EU Region flow
+Rel(eu_alb, eu_user_svc, "Load balances", "HTTP")
+Rel(eu_alb, eu_order_svc, "Load balances", "HTTP")
+Rel(eu_alb, eu_product_svc, "Load balances", "HTTP")
+
+' EU services to data
+Rel(eu_user_svc, eu_read_replica, "Reads", "SQL")
+Rel(eu_user_svc, eu_standby_db, "Failover writes", "SQL")
+Rel(eu_order_svc, eu_read_replica, "Reads", "SQL")
+Rel(eu_order_svc, eu_redis, "Cache", "Redis")
+Rel(eu_product_svc, eu_read_replica, "Reads", "SQL")
+Rel(eu_product_svc, eu_redis, "Cache", "Redis")
+
+' EU messaging
+Rel(eu_order_svc, eu_queue, "Publishes", "AMQP")
+Rel(eu_queue, eu_user_svc, "Notifies", "AMQP")
+
+' Cross-region replication
+Rel(us_primary_db, db_replication, "Streams changes", "WAL")
+Rel(db_replication, eu_read_replica, "Replicates", "SQL")
+Rel(db_replication, eu_standby_db, "Replicates", "SQL")
+
+' Cache synchronization
+Rel(us_redis, cache_sync, "Cache events", "Redis")
+Rel(cache_sync, eu_redis, "Invalidations", "Redis")
+
+' Queue federation
+Rel(us_queue, queue_federation, "Federates", "AMQP")
+Rel(queue_federation, eu_queue, "Routes messages", "AMQP")
+
+' Monitoring
+Rel(health_check, us_alb, "Health checks", "HTTP")
+Rel(health_check, eu_alb, "Health checks", "HTTP")
+Rel(health_check, global_lb, "Updates routing", "API")
+
+note right of global_lb
+  **Traffic Routing Strategy:**
+  • Geolocation-based routing
+  • Health-based failover
+  • Latency-based routing
+  • Weighted round-robin
+  • Disaster recovery automation
+end note
+
+note right of db_replication
+  **Replication Features:**
+  • Asynchronous streaming replication
+  • Cross-region backup and restore
+  • Point-in-time recovery
+  • Automatic failover capabilities
+  • Data consistency monitoring
+end note
+
+note left of us_region
+  **Primary Region (US East):**
+  • Handles all write operations
+  • Primary source of truth
+  • Full service deployment
+  • Master database instance
+  • Active monitoring and alerting
+end note
+
+note left of eu_region
+  **Secondary Region (EU West):**
+  • Handles regional read traffic
+  • Hot standby for disaster recovery
+  • Reduced latency for EU users
+  • Cross-region data replication
+  • Independent scaling capabilities
+end note
+
+note right of health_check
+  **Multi-Region Benefits:**
+  • Improved user experience (lower latency)
+  • High availability and disaster recovery
+  • Compliance with data residency laws
+  • Load distribution across regions
+  • Fault isolation and resilience
+end note
+
+note left of cache_sync
+  **Data Consistency:**
+  • Eventually consistent reads
+  • Cache invalidation strategies
+  • Conflict resolution mechanisms
+  • Cross-region synchronization
+  • Monitoring replication lag
+end note
+
+@enduml

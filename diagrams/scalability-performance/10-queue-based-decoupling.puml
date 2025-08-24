@@ -1,0 +1,130 @@
+@startuml Queue-Based Decoupling
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Queue-Based Decoupling Architecture
+
+Person(user, "User", "End user accessing the application")
+
+System_Boundary(frontend, "Frontend Layer") {
+    Container(web_app, "Web Application", "React/Vue.js", "User interface for web browsers")
+    Container(mobile_app, "Mobile App", "React Native/Flutter", "Native mobile application")
+}
+
+System_Boundary(gateway, "API Gateway Layer") {
+    Container(api_gateway, "API Gateway", "Kong/AWS API Gateway", "Routes requests, handles auth, rate limiting")
+}
+
+System_Boundary(services, "Microservices Layer") {
+    Container(user_service, "User Service", "Node.js/Express", "Handles user management and authentication")
+    Container(order_service, "Order Service", "Java/Spring Boot", "Processes orders synchronously")
+    Container(notification_service, "Notification Service", "Python/FastAPI", "Sends notifications asynchronously")
+    Container(email_worker, "Email Worker", "Python/Celery", "Processes email sending jobs")
+    Container(sms_worker, "SMS Worker", "Python/Celery", "Processes SMS sending jobs")
+}
+
+System_Boundary(messaging, "Message Queue Layer") {
+    Container(rabbitmq, "RabbitMQ", "Message Broker", "Handles async message queuing")
+    Container(redis_queue, "Redis Queue", "In-memory Queue", "Fast job queuing for workers")
+}
+
+System_Boundary(data, "Data Layer") {
+    ContainerDb(user_db, "User Database", "PostgreSQL", "Stores user data and profiles")
+    ContainerDb(order_db, "Order Database", "PostgreSQL", "Stores order information")
+    ContainerDb(notification_db, "Notification Database", "MongoDB", "Stores notification logs and templates")
+}
+
+System_Boundary(external, "External Services") {
+    Container(email_provider, "Email Provider", "SendGrid/SES", "Third-party email service")
+    Container(sms_provider, "SMS Provider", "Twilio/SNS", "Third-party SMS service")
+}
+
+' User interactions
+Rel(user, web_app, "Uses", "HTTPS")
+Rel(user, mobile_app, "Uses", "HTTPS")
+
+' Frontend to API Gateway
+Rel(web_app, api_gateway, "API Calls", "REST/GraphQL")
+Rel(mobile_app, api_gateway, "API Calls", "REST/GraphQL")
+
+' API Gateway to Services
+Rel(api_gateway, user_service, "Routes requests", "HTTP/REST")
+Rel(api_gateway, order_service, "Routes requests", "HTTP/REST")
+Rel(api_gateway, notification_service, "Routes requests", "HTTP/REST")
+
+' Synchronous service interactions
+Rel(order_service, user_service, "Validates user", "HTTP/REST")
+
+' Asynchronous messaging
+Rel(order_service, rabbitmq, "Publishes order events", "AMQP")
+Rel(notification_service, rabbitmq, "Publishes notification jobs", "AMQP")
+Rel(notification_service, redis_queue, "Queues worker jobs", "Redis Protocol")
+
+' Queue consumers
+Rel(rabbitmq, notification_service, "Consumes order events", "AMQP")
+Rel(redis_queue, email_worker, "Dequeues email jobs", "Redis Protocol")
+Rel(redis_queue, sms_worker, "Dequeues SMS jobs", "Redis Protocol")
+
+' Database connections
+Rel(user_service, user_db, "Reads/Writes", "SQL")
+Rel(order_service, order_db, "Reads/Writes", "SQL")
+Rel(notification_service, notification_db, "Reads/Writes", "NoSQL")
+
+' External service calls
+Rel(email_worker, email_provider, "Sends emails", "HTTPS/API")
+Rel(sms_worker, sms_provider, "Sends SMS", "HTTPS/API")
+
+note right of rabbitmq
+  **Message Queue Benefits:**
+  • Decouples services temporally
+  • Handles traffic spikes gracefully
+  • Enables retry mechanisms
+  • Supports multiple consumers
+  • Provides message persistence
+end note
+
+note right of notification_service
+  **Async Processing Flow:**
+  1. Receives order completion event
+  2. Creates notification jobs
+  3. Queues jobs for workers
+  4. Returns immediately to caller
+  5. Workers process jobs independently
+end note
+
+note right of email_worker
+  **Worker Characteristics:**
+  • Horizontally scalable
+  • Fault-tolerant with retries
+  • Dead letter queue support
+  • Monitoring and alerting
+  • Rate limiting for external APIs
+end note
+
+note right of order_service
+  **Event Publishing:**
+  • Order created events
+  • Order status updates
+  • Payment confirmations
+  • Shipping notifications
+  • Cancellation events
+end note
+
+note left of api_gateway
+  **Gateway Features:**
+  • Request routing and load balancing
+  • Authentication and authorization
+  • Rate limiting and throttling
+  • Request/response transformation
+  • Circuit breaker patterns
+end note
+
+note left of redis_queue
+  **Queue Strategy:**
+  • Redis for fast, simple jobs
+  • RabbitMQ for complex routing
+  • Dead letter queues for failures
+  • Priority queues for urgent tasks
+  • Monitoring queue depths
+end note
+
+@enduml

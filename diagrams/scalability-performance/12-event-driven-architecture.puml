@@ -1,0 +1,184 @@
+@startuml Event-Driven Architecture
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Event-Driven Architecture with Kafka
+
+Person(user, "User", "End user interacting with the system")
+
+System_Boundary(frontend, "Frontend Layer") {
+    Container(web_app, "Web Application", "React/Vue.js", "User interface")
+    Container(mobile_app, "Mobile App", "React Native", "Mobile interface")
+}
+
+System_Boundary(gateway, "API Gateway") {
+    Container(api_gateway, "API Gateway", "Kong/Zuul", "Request routing and authentication")
+}
+
+System_Boundary(services, "Event-Driven Microservices") {
+    Container(user_service, "User Service", "Node.js", "User management and authentication")
+    Container(order_service, "Order Service", "Java/Spring Boot", "Order processing and lifecycle")
+    Container(inventory_service, "Inventory Service", "Python/FastAPI", "Stock management")
+    Container(payment_service, "Payment Service", "Go", "Payment processing")
+    Container(notification_service, "Notification Service", "Node.js", "Multi-channel notifications")
+    Container(analytics_service, "Analytics Service", "Python", "Real-time analytics and reporting")
+    Container(audit_service, "Audit Service", "Java", "Event logging and compliance")
+}
+
+System_Boundary(messaging, "Event Streaming Platform") {
+    Container(kafka_cluster, "Kafka Cluster", "Apache Kafka", "Distributed event streaming platform")
+    Container(schema_registry, "Schema Registry", "Confluent Schema Registry", "Event schema management")
+    Container(kafka_connect, "Kafka Connect", "Kafka Connect", "Data integration connectors")
+}
+
+System_Boundary(topics, "Kafka Topics") {
+    Container(user_events, "User Events", "Kafka Topic", "user.created, user.updated, user.deleted")
+    Container(order_events, "Order Events", "Kafka Topic", "order.placed, order.confirmed, order.shipped")
+    Container(inventory_events, "Inventory Events", "Kafka Topic", "stock.updated, stock.reserved, stock.released")
+    Container(payment_events, "Payment Events", "Kafka Topic", "payment.initiated, payment.completed, payment.failed")
+    Container(notification_events, "Notification Events", "Kafka Topic", "notification.email, notification.sms, notification.push")
+}
+
+System_Boundary(data, "Data Layer") {
+    ContainerDb(user_db, "User Database", "PostgreSQL", "User profiles and authentication")
+    ContainerDb(order_db, "Order Database", "PostgreSQL", "Order information")
+    ContainerDb(inventory_db, "Inventory Database", "PostgreSQL", "Stock levels and products")
+    ContainerDb(payment_db, "Payment Database", "PostgreSQL", "Payment transactions")
+    ContainerDb(analytics_db, "Analytics Database", "ClickHouse", "Time-series analytics data")
+    ContainerDb(audit_db, "Audit Database", "MongoDB", "Event logs and audit trails")
+}
+
+System_Boundary(streaming, "Stream Processing") {
+    Container(kafka_streams, "Kafka Streams", "Kafka Streams API", "Real-time stream processing")
+    Container(ksql, "KSQL", "Confluent KSQL", "SQL-based stream processing")
+}
+
+System_Boundary(external, "External Systems") {
+    Container(email_service, "Email Service", "SendGrid", "Email delivery")
+    Container(sms_service, "SMS Service", "Twilio", "SMS delivery")
+    Container(push_service, "Push Service", "Firebase", "Push notifications")
+}
+
+' User interactions
+Rel(user, web_app, "Uses", "HTTPS")
+Rel(user, mobile_app, "Uses", "HTTPS")
+
+' Frontend to API Gateway
+Rel(web_app, api_gateway, "API calls", "REST/GraphQL")
+Rel(mobile_app, api_gateway, "API calls", "REST/GraphQL")
+
+' API Gateway to Services
+Rel(api_gateway, user_service, "Routes", "HTTP")
+Rel(api_gateway, order_service, "Routes", "HTTP")
+Rel(api_gateway, inventory_service, "Routes", "HTTP")
+Rel(api_gateway, payment_service, "Routes", "HTTP")
+
+' Event Publishing
+Rel(user_service, user_events, "Publishes", "Kafka Producer")
+Rel(order_service, order_events, "Publishes", "Kafka Producer")
+Rel(inventory_service, inventory_events, "Publishes", "Kafka Producer")
+Rel(payment_service, payment_events, "Publishes", "Kafka Producer")
+Rel(notification_service, notification_events, "Publishes", "Kafka Producer")
+
+' Event Consuming
+Rel(order_events, inventory_service, "Consumes", "Kafka Consumer")
+Rel(order_events, payment_service, "Consumes", "Kafka Consumer")
+Rel(order_events, notification_service, "Consumes", "Kafka Consumer")
+Rel(payment_events, order_service, "Consumes", "Kafka Consumer")
+Rel(payment_events, notification_service, "Consumes", "Kafka Consumer")
+Rel(inventory_events, order_service, "Consumes", "Kafka Consumer")
+Rel(user_events, notification_service, "Consumes", "Kafka Consumer")
+
+' Analytics and Audit
+Rel(user_events, analytics_service, "Consumes", "Kafka Consumer")
+Rel(order_events, analytics_service, "Consumes", "Kafka Consumer")
+Rel(payment_events, analytics_service, "Consumes", "Kafka Consumer")
+Rel(user_events, audit_service, "Consumes", "Kafka Consumer")
+Rel(order_events, audit_service, "Consumes", "Kafka Consumer")
+Rel(payment_events, audit_service, "Consumes", "Kafka Consumer")
+
+' Kafka infrastructure
+Rel(kafka_cluster, user_events, "Manages", "Internal")
+Rel(kafka_cluster, order_events, "Manages", "Internal")
+Rel(kafka_cluster, inventory_events, "Manages", "Internal")
+Rel(kafka_cluster, payment_events, "Manages", "Internal")
+Rel(kafka_cluster, notification_events, "Manages", "Internal")
+
+' Schema management
+Rel(schema_registry, kafka_cluster, "Schema validation", "HTTP")
+
+' Stream processing
+Rel(kafka_streams, kafka_cluster, "Processes streams", "Kafka API")
+Rel(ksql, kafka_cluster, "SQL queries", "Kafka API")
+
+' Database connections
+Rel(user_service, user_db, "Reads/Writes", "SQL")
+Rel(order_service, order_db, "Reads/Writes", "SQL")
+Rel(inventory_service, inventory_db, "Reads/Writes", "SQL")
+Rel(payment_service, payment_db, "Reads/Writes", "SQL")
+Rel(analytics_service, analytics_db, "Writes", "SQL")
+Rel(audit_service, audit_db, "Writes", "NoSQL")
+
+' External services
+Rel(notification_service, email_service, "Sends emails", "HTTPS")
+Rel(notification_service, sms_service, "Sends SMS", "HTTPS")
+Rel(notification_service, push_service, "Sends push", "HTTPS")
+
+' Data integration
+Rel(kafka_connect, analytics_db, "Streams to", "JDBC")
+Rel(kafka_connect, audit_db, "Streams to", "MongoDB Connector")
+
+note right of kafka_cluster
+  **Kafka Benefits:**
+  • High throughput and low latency
+  • Horizontal scalability
+  • Fault tolerance and durability
+  • Event replay capabilities
+  • Decoupled producer/consumer model
+end note
+
+note right of order_service
+  **Event Flow Example:**
+  1. Order placed → order.placed event
+  2. Inventory reserves stock → stock.reserved
+  3. Payment processed → payment.completed
+  4. Order confirmed → order.confirmed
+  5. Notifications sent → notification.email
+end note
+
+note left of analytics_service
+  **Real-time Analytics:**
+  • Order volume metrics
+  • User behavior tracking
+  • Payment success rates
+  • Inventory turnover
+  • System performance monitoring
+end note
+
+note left of schema_registry
+  **Schema Evolution:**
+  • Backward compatibility
+  • Forward compatibility
+  • Schema versioning
+  • Automatic validation
+  • Contract testing
+end note
+
+note right of kafka_streams
+  **Stream Processing:**
+  • Event aggregation
+  • Windowed operations
+  • Join operations
+  • Stateful transformations
+  • Exactly-once semantics
+end note
+
+note left of audit_service
+  **Event Sourcing Benefits:**
+  • Complete audit trail
+  • System state reconstruction
+  • Temporal queries
+  • Compliance reporting
+  • Debugging capabilities
+end note
+
+@enduml

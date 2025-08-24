@@ -1,0 +1,157 @@
+@startuml Circuit Breaker Pattern
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Circuit Breaker Pattern for Resilient Microservices
+
+Person(client, "Client Application", "Frontend or API consumer")
+
+System_Boundary(gateway, "API Gateway Layer") {
+    Container(api_gateway, "API Gateway", "Kong/Zuul", "Request routing with circuit breaker")
+    Container(circuit_breaker, "Circuit Breaker", "Hystrix/Resilience4j", "Failure detection and prevention")
+}
+
+System_Boundary(load_balancer, "Load Balancer Layer") {
+    Container(load_balancer, "Load Balancer", "HAProxy/ALB", "Traffic distribution with health checks")
+}
+
+System_Boundary(services, "Microservices Layer") {
+    Container(order_service_1, "Order Service 1", "Java/Spring Boot", "Healthy instance")
+    Container(order_service_2, "Order Service 2", "Java/Spring Boot", "Degraded instance")
+    Container(order_service_3, "Order Service 3", "Java/Spring Boot", "Failed instance")
+    
+    Container(payment_service, "Payment Service", "Node.js", "External payment processing")
+    Container(inventory_service, "Inventory Service", "Python", "Stock management service")
+    Container(notification_service, "Notification Service", "Go", "Notification delivery")
+}
+
+System_Boundary(fallback, "Fallback Mechanisms") {
+    Container(cache_fallback, "Cache Fallback", "Redis", "Cached responses for degraded service")
+    Container(default_response, "Default Response", "Static Data", "Predefined fallback responses")
+    Container(queue_fallback, "Queue Fallback", "RabbitMQ", "Async processing for failed requests")
+}
+
+System_Boundary(monitoring, "Circuit Breaker Monitoring") {
+    Container(metrics_collector, "Metrics Collector", "Prometheus", "Circuit breaker state metrics")
+    Container(dashboard, "Dashboard", "Grafana", "Real-time circuit breaker status")
+    Container(alerting, "Alerting System", "AlertManager", "Circuit breaker state alerts")
+}
+
+System_Boundary(states, "Circuit Breaker States") {
+    Container(closed_state, "CLOSED State", "Normal Operation", "All requests pass through")
+    Container(open_state, "OPEN State", "Circuit Open", "All requests fail fast")
+    Container(half_open_state, "HALF-OPEN State", "Testing Recovery", "Limited requests allowed")
+}
+
+System_Boundary(data, "Data Layer") {
+    ContainerDb(order_db, "Order Database", "PostgreSQL", "Order data storage")
+    ContainerDb(payment_db, "Payment Database", "PostgreSQL", "Payment transaction data")
+    ContainerDb(inventory_db, "Inventory Database", "PostgreSQL", "Stock level data")
+}
+
+' Normal request flow (Circuit Closed)
+Rel(client, api_gateway, "1. Request", "HTTPS")
+Rel(api_gateway, circuit_breaker, "2. Check circuit state", "Internal")
+Rel(circuit_breaker, load_balancer, "3. Forward request (CLOSED)", "HTTP")
+Rel(load_balancer, order_service_1, "4. Route to healthy instance", "HTTP")
+Rel(order_service_1, order_db, "5. Query database", "SQL")
+Rel(order_service_1, payment_service, "6. Call payment service", "HTTP")
+Rel(payment_service, payment_db, "7. Process payment", "SQL")
+
+' Service dependencies
+Rel(order_service_1, inventory_service, "Check stock", "HTTP")
+Rel(order_service_1, notification_service, "Send notifications", "HTTP")
+Rel(inventory_service, inventory_db, "Update stock", "SQL")
+
+' Circuit breaker failure detection
+Rel(load_balancer, order_service_2, "Health check (degraded)", "HTTP")
+Rel(load_balancer, order_service_3, "Health check (failed)", "HTTP")
+Rel(circuit_breaker, metrics_collector, "Report failures", "HTTP")
+
+' Fallback mechanisms
+Rel(circuit_breaker, cache_fallback, "Fallback to cache (OPEN)", "Redis Protocol")
+Rel(circuit_breaker, default_response, "Return default response", "Internal")
+Rel(circuit_breaker, queue_fallback, "Queue for later processing", "AMQP")
+
+' Circuit breaker state transitions
+Rel(closed_state, open_state, "Failure threshold exceeded", "State Transition")
+Rel(open_state, half_open_state, "Timeout period elapsed", "State Transition")
+Rel(half_open_state, closed_state, "Test requests successful", "State Transition")
+Rel(half_open_state, open_state, "Test requests failed", "State Transition")
+
+' Monitoring and alerting
+Rel(metrics_collector, dashboard, "Visualize metrics", "HTTP")
+Rel(metrics_collector, alerting, "Trigger alerts", "HTTP")
+
+' Recovery testing (Half-Open state)
+Rel(circuit_breaker, order_service_2, "Test request (HALF-OPEN)", "HTTP")
+
+note right of circuit_breaker
+  **Circuit Breaker Configuration:**
+  • Failure threshold: 50% in 10 requests
+  • Timeout period: 60 seconds
+  • Success threshold: 3 consecutive successes
+  • Request volume threshold: 20 requests
+  • Sliding window: 10 seconds
+end note
+
+note right of closed_state
+  **CLOSED State (Normal):**
+  • All requests pass through
+  • Monitors failure rate
+  • Counts successful/failed requests
+  • Transitions to OPEN on threshold breach
+end note
+
+note right of open_state
+  **OPEN State (Circuit Tripped):**
+  • All requests fail immediately
+  • Returns fallback response
+  • Prevents cascading failures
+  • Waits for timeout period
+end note
+
+note right of half_open_state
+  **HALF-OPEN State (Testing):**
+  • Limited requests allowed through
+  • Tests service recovery
+  • Monitors success rate
+  • Transitions based on test results
+end note
+
+note left of cache_fallback
+  **Fallback Strategies:**
+  • Cached previous responses
+  • Default/static responses
+  • Degraded functionality
+  • Async processing queue
+  • Graceful degradation
+end note
+
+note left of metrics_collector
+  **Monitoring Metrics:**
+  • Circuit breaker state changes
+  • Request success/failure rates
+  • Response times
+  • Fallback usage frequency
+  • Service health indicators
+end note
+
+note right of load_balancer
+  **Health Check Integration:**
+  • Removes unhealthy instances
+  • Coordinates with circuit breaker
+  • Provides service discovery
+  • Implements retry logic
+  • Supports graceful shutdown
+end note
+
+note left of queue_fallback
+  **Async Fallback Processing:**
+  • Queues failed requests
+  • Retry with exponential backoff
+  • Dead letter queue for permanent failures
+  • Batch processing during recovery
+  • Priority-based processing
+end note
+
+@enduml

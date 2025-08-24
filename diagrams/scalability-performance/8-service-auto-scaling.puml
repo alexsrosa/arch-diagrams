@@ -1,0 +1,184 @@
+@startuml Service Auto-Scaling with Kubernetes
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!define FONTAWESOME https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/font-awesome-5
+!include DEVICONS/react.puml
+!include DEVICONS/java.puml
+!include DEVICONS/nodejs.puml
+!include DEVICONS/python.puml
+!include DEVICONS/postgresql.puml
+!include DEVICONS/redis.puml
+!include FONTAWESOME/users.puml
+!include FONTAWESOME/server.puml
+!include FONTAWESOME/database.puml
+!include FONTAWESOME/dharmachakra.puml
+!include FONTAWESOME/chart_line.puml
+!include FONTAWESOME/cogs.puml
+!include FONTAWESOME/cloud.puml
+!include FONTAWESOME/balance_scale.puml
+
+title Kubernetes Auto-Scaling Microservices Architecture
+
+Person(users, "Application Users", "Variable load patterns throughout the day", $sprite="users")
+
+System_Boundary(ingress_boundary, "Kubernetes Ingress Layer") {
+    Container(ingress_controller, "Ingress Controller", "NGINX/Traefik", "Load balancing and SSL termination", $sprite="balance_scale")
+    Container(cert_manager, "Cert Manager", "Let's Encrypt", "Automatic SSL certificate management", $sprite="server")
+}
+
+System_Boundary(k8s_control_boundary, "Kubernetes Control Plane") {
+    Container(api_server, "API Server", "Kubernetes", "Cluster management and orchestration", $sprite="dharmachakra")
+    Container(hpa_controller, "HPA Controller", "Kubernetes HPA", "Horizontal Pod Autoscaler", $sprite="chart_line")
+    Container(vpa_controller, "VPA Controller", "Kubernetes VPA", "Vertical Pod Autoscaler", $sprite="cogs")
+    Container(cluster_autoscaler, "Cluster Autoscaler", "Kubernetes CA", "Node-level auto-scaling", $sprite="cloud")
+}
+
+System_Boundary(user_service_boundary, "User Service Cluster") {
+    Container(user_service_1, "User Pod 1", "Java Spring Boot", "Active user service instance", $sprite="java")
+    Container(user_service_2, "User Pod 2", "Java Spring Boot", "Auto-scaled instance", $sprite="java")
+    Container(user_service_3, "User Pod 3", "Java Spring Boot", "Peak load instance (auto-created)", $sprite="java")
+    Container(user_hpa, "User Service HPA", "HPA Config", "Min: 2, Max: 10, Target CPU: 70%", $sprite="chart_line")
+}
+
+System_Boundary(product_service_boundary, "Product Service Cluster") {
+    Container(product_service_1, "Product Pod 1", "Node.js Express", "Active product service instance", $sprite="nodejs")
+    Container(product_service_2, "Product Pod 2", "Node.js Express", "Auto-scaled instance", $sprite="nodejs")
+    Container(product_service_4, "Product Pod 4", "Node.js Express", "High-traffic instance (auto-created)", $sprite="nodejs")
+    Container(product_service_5, "Product Pod 5", "Node.js Express", "Peak load instance (auto-created)", $sprite="nodejs")
+    Container(product_hpa, "Product Service HPA", "HPA Config", "Min: 2, Max: 15, Target CPU: 60%", $sprite="chart_line")
+}
+
+System_Boundary(order_service_boundary, "Order Service Cluster") {
+    Container(order_service_1, "Order Pod 1", "Python FastAPI", "Active order service instance", $sprite="python")
+    Container(order_service_2, "Order Pod 2", "Python FastAPI", "Auto-scaled instance", $sprite="python")
+    Container(order_hpa, "Order Service HPA", "HPA Config", "Min: 2, Max: 8, Target CPU: 75%", $sprite="chart_line")
+}
+
+System_Boundary(monitoring_boundary, "Monitoring & Metrics") {
+    Container(prometheus, "Prometheus", "Metrics Server", "Collects CPU, memory, custom metrics", $sprite="chart_line")
+    Container(grafana, "Grafana", "Visualization", "Dashboards and alerting", $sprite="chart_line")
+    Container(metrics_server, "Metrics Server", "Kubernetes", "Resource usage metrics for HPA", $sprite="server")
+}
+
+System_Boundary(data_boundary, "Persistent Data Layer") {
+    ContainerDb(user_db, "User Database", "PostgreSQL", "User data with connection pooling", $sprite="postgresql")
+    ContainerDb(product_db, "Product Database", "PostgreSQL", "Product catalog with read replicas", $sprite="postgresql")
+    ContainerDb(order_db, "Order Database", "PostgreSQL", "Order data with high availability", $sprite="postgresql")
+    Container(redis_cluster, "Redis Cluster", "Redis", "Distributed caching layer", $sprite="redis")
+}
+
+' User traffic flow
+Rel(users, ingress_controller, "HTTPS Traffic", "Variable load patterns")
+Rel(ingress_controller, user_service_1, "Route /users", "Load balanced")
+Rel(ingress_controller, user_service_2, "Route /users", "Load balanced")
+Rel(ingress_controller, user_service_3, "Route /users", "Load balanced")
+
+Rel(ingress_controller, product_service_1, "Route /products", "Load balanced")
+Rel(ingress_controller, product_service_2, "Route /products", "Load balanced")
+Rel(ingress_controller, product_service_4, "Route /products", "Load balanced")
+Rel(ingress_controller, product_service_5, "Route /products", "Load balanced")
+
+Rel(ingress_controller, order_service_1, "Route /orders", "Load balanced")
+Rel(ingress_controller, order_service_2, "Route /orders", "Load balanced")
+
+' HPA monitoring and scaling decisions
+Rel(metrics_server, user_hpa, "CPU/Memory Metrics", "Resource utilization")
+Rel(metrics_server, product_hpa, "CPU/Memory Metrics", "Resource utilization")
+Rel(metrics_server, order_hpa, "CPU/Memory Metrics", "Resource utilization")
+
+Rel(user_hpa, api_server, "Scale Decision", "Pod creation/deletion")
+Rel(product_hpa, api_server, "Scale Decision", "Pod creation/deletion")
+Rel(order_hpa, api_server, "Scale Decision", "Pod creation/deletion")
+
+Rel(hpa_controller, user_hpa, "HPA Logic", "Scaling algorithm")
+Rel(hpa_controller, product_hpa, "HPA Logic", "Scaling algorithm")
+Rel(hpa_controller, order_hpa, "HPA Logic", "Scaling algorithm")
+
+' Cluster autoscaling
+Rel(cluster_autoscaler, api_server, "Node Scaling", "Add/Remove nodes")
+Rel(api_server, cluster_autoscaler, "Resource Pressure", "Node capacity alerts")
+
+' Service to database connections
+Rel(user_service_1, user_db, "Database Queries", "Connection pool")
+Rel(user_service_2, user_db, "Database Queries", "Connection pool")
+Rel(user_service_3, user_db, "Database Queries", "Connection pool")
+
+Rel(product_service_1, product_db, "Database Queries", "Connection pool")
+Rel(product_service_2, product_db, "Database Queries", "Connection pool")
+Rel(product_service_4, product_db, "Database Queries", "Connection pool")
+Rel(product_service_5, product_db, "Database Queries", "Connection pool")
+
+Rel(order_service_1, order_db, "Database Queries", "Connection pool")
+Rel(order_service_2, order_db, "Database Queries", "Connection pool")
+
+' Cache connections
+Rel(user_service_1, redis_cluster, "Cache Operations", "Distributed cache")
+Rel(product_service_1, redis_cluster, "Cache Operations", "Distributed cache")
+Rel(order_service_1, redis_cluster, "Cache Operations", "Distributed cache")
+
+' Monitoring connections
+Rel(user_service_1, prometheus, "Metrics Export", "Custom metrics")
+Rel(product_service_1, prometheus, "Metrics Export", "Custom metrics")
+Rel(order_service_1, prometheus, "Metrics Export", "Custom metrics")
+Rel(metrics_server, prometheus, "System Metrics", "Resource usage")
+Rel(prometheus, grafana, "Query Metrics", "Visualization")
+
+note right of user_hpa
+  **User Service HPA Config:**
+  • Min Replicas: 2
+  • Max Replicas: 10
+  • Target CPU: 70%
+  • Target Memory: 80%
+  • Scale Up: 3 pods/2min
+  • Scale Down: 1 pod/5min
+end note
+
+note right of product_hpa
+  **Product Service HPA Config:**
+  • Min Replicas: 2
+  • Max Replicas: 15
+  • Target CPU: 60%
+  • Custom Metric: RPS > 1000
+  • Scale Up: 5 pods/1min
+  • Scale Down: 2 pods/3min
+end note
+
+note right of order_hpa
+  **Order Service HPA Config:**
+  • Min Replicas: 2
+  • Max Replicas: 8
+  • Target CPU: 75%
+  • Target Memory: 85%
+  • Scale Up: 2 pods/2min
+  • Scale Down: 1 pod/10min
+end note
+
+note right of cluster_autoscaler
+  **Cluster Autoscaler:**
+  • Node groups: 1-20 nodes
+  • Scale up: Resource pressure
+  • Scale down: <50% utilization
+  • Grace period: 10 minutes
+  • Instance types: Mixed
+end note
+
+note top of k8s_control_boundary
+  **Auto-Scaling Benefits:**
+  • Cost optimization
+  • Performance consistency
+  • Automatic load handling
+  • Resource efficiency
+  • High availability
+end note
+
+note bottom of data_boundary
+  **Database Considerations:**
+  • Connection pool sizing
+  • Query performance
+  • Read replica scaling
+  • Cache hit optimization
+  • Connection limits
+end note
+
+@enduml

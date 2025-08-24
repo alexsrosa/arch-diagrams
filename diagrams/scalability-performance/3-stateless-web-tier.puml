@@ -1,0 +1,128 @@
+@startuml Stateless Web Tier
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!define FONTAWESOME https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/font-awesome-5
+!include DEVICONS/react.puml
+!include DEVICONS/java.puml
+!include DEVICONS/postgresql.puml
+!include DEVICONS/nginx.puml
+!include FONTAWESOME/users.puml
+!include FONTAWESOME/server.puml
+!include FONTAWESOME/database.puml
+!include FONTAWESOME/globe.puml
+
+title Stateless Web Tier Architecture
+
+Person(users, "Users", "End users accessing web application via browsers", $sprite="users")
+
+System_Boundary(web_boundary, "Web Tier (Stateless)") {
+    Container(web_lb, "Web Load Balancer", "NGINX/CloudFlare", "Distributes web requests across frontend instances", $sprite="nginx")
+    Container(frontend_1, "Frontend Server 1", "React/Angular SPA", "Stateless web application serving UI components", $sprite="react")
+    Container(frontend_2, "Frontend Server 2", "React/Angular SPA", "Identical stateless frontend instance", $sprite="react")
+    Container(frontend_3, "Frontend Server 3", "React/Angular SPA", "Additional frontend instance for scaling", $sprite="react")
+}
+
+System_Boundary(api_boundary, "API Gateway Layer") {
+    Container(api_gateway, "API Gateway", "Kong/AWS API Gateway", "Routes API calls to backend services", $sprite="server")
+}
+
+System_Boundary(backend_boundary, "Backend Tier") {
+    Container(backend_monolith, "Backend Monolith", "Java Spring Boot", "Stateful business logic and data processing", $sprite="java")
+}
+
+System_Boundary(data_boundary, "Data Layer") {
+    ContainerDb(database, "Application Database", "PostgreSQL", "Persistent data storage with ACID properties", $sprite="postgresql")
+}
+
+System_Boundary(session_boundary, "Session Management") {
+    Container(session_store, "Session Store", "Redis/Memcached", "Centralized session and state management", $sprite="database")
+}
+
+' User interactions
+Rel(users, web_lb, "HTTP/HTTPS Requests", "Web traffic")
+
+' Web tier load balancing
+Rel(web_lb, frontend_1, "Routes Web Requests", "Static assets & SPA")
+Rel(web_lb, frontend_2, "Routes Web Requests", "Static assets & SPA")
+Rel(web_lb, frontend_3, "Routes Web Requests", "Static assets & SPA")
+
+' Frontend to API Gateway
+Rel(frontend_1, api_gateway, "API Calls", "REST/GraphQL")
+Rel(frontend_2, api_gateway, "API Calls", "REST/GraphQL")
+Rel(frontend_3, api_gateway, "API Calls", "REST/GraphQL")
+
+' API Gateway to Backend
+Rel(api_gateway, backend_monolith, "Proxied Requests", "HTTP/HTTPS")
+
+' Backend to Database
+Rel(backend_monolith, database, "SQL Queries", "JDBC connections")
+
+' Session management
+Rel(backend_monolith, session_store, "Session Operations", "Read/Write session data")
+Rel(api_gateway, session_store, "Session Validation", "Authentication checks")
+
+' Response flows
+Rel(backend_monolith, api_gateway, "API Responses", "JSON/XML")
+Rel(api_gateway, frontend_1, "API Responses", "JSON data")
+Rel(api_gateway, frontend_2, "API Responses", "JSON data")
+Rel(api_gateway, frontend_3, "API Responses", "JSON data")
+Rel(frontend_1, web_lb, "Web Responses", "HTML/JS/CSS")
+Rel(frontend_2, web_lb, "Web Responses", "HTML/JS/CSS")
+Rel(frontend_3, web_lb, "Web Responses", "HTML/JS/CSS")
+Rel(web_lb, users, "HTTP Responses", "Web content")
+
+note right of frontend_1
+  **Stateless Frontend:**
+  • No server-side sessions
+  • Client-side state management
+  • JWT/Token authentication
+  • Cacheable static assets
+  • Horizontal scaling ready
+end note
+
+note right of api_gateway
+  **API Gateway Features:**
+  • Request routing
+  • Authentication/Authorization
+  • Rate limiting
+  • Request/Response transformation
+  • Monitoring and analytics
+end note
+
+note right of session_store
+  **Centralized Sessions:**
+  • Shared session storage
+  • Fast in-memory access
+  • Session replication
+  • TTL management
+  • Cluster support
+end note
+
+note right of backend_monolith
+  **Backend Characteristics:**
+  • Stateful business logic
+  • Database connections
+  • Session validation
+  • Business rules processing
+  • Transaction management
+end note
+
+note top of web_boundary
+  **Stateless Benefits:**
+  • Easy horizontal scaling
+  • No session affinity needed
+  • Fault tolerance
+  • Load distribution flexibility
+  • Simplified deployment
+end note
+
+note bottom of data_boundary
+  **Architecture Advantages:**
+  • Clear separation of concerns
+  • Independent scaling tiers
+  • Better resource utilization
+  • Improved availability
+end note
+
+@enduml

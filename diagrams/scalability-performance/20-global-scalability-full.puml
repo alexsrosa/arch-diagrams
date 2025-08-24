@@ -1,0 +1,257 @@
+@startuml Global Scalability Full Architecture
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Complete Global Scalability Architecture - Enterprise-Grade Solution
+
+Person(user_americas, "Americas User", "Users in North/South America")
+Person(user_europe, "Europe User", "Users in Europe/Africa")
+Person(user_asia, "Asia User", "Users in Asia/Pacific")
+Person(iot_devices, "IoT Devices", "Global IoT sensor network")
+
+System_Boundary(global_dns, "Global DNS & CDN") {
+    Container(anycast_dns, "Anycast DNS", "Route 53/CloudFlare", "Global DNS with health checks")
+    Container(global_cdn, "Global CDN", "CloudFlare/AWS CloudFront", "Multi-tier content delivery")
+    Container(waf, "Web Application Firewall", "CloudFlare/AWS WAF", "DDoS protection and security")
+}
+
+System_Boundary(region_americas, "Americas Region (Primary)") {
+    System_Boundary(edge_americas, "Edge Computing Layer") {
+        Container(edge_us_east, "Edge US East", "K3s", "Edge computing nodes")
+        Container(edge_us_west, "Edge US West", "K3s", "Edge computing nodes")
+        Container(edge_brazil, "Edge Brazil", "K3s", "Edge computing nodes")
+    }
+    
+    System_Boundary(k8s_americas, "Kubernetes Cluster - Americas") {
+        Container(istio_gateway_am, "Istio Gateway", "Envoy", "Service mesh ingress")
+        Container(api_gateway_am, "API Gateway", "Kong", "API management with rate limiting")
+        
+        System_Boundary(microservices_am, "Microservices with Service Mesh") {
+            Container(user_service_am, "User Service", "Java/Spring Boot", "Auto-scaling: 3-50 pods")
+            Container(product_service_am, "Product Service", "Node.js", "Auto-scaling: 5-100 pods")
+            Container(order_service_am, "Order Service", "Python", "Auto-scaling: 2-30 pods")
+            Container(payment_service_am, "Payment Service", "Go", "Auto-scaling: 3-20 pods")
+            Container(inventory_service_am, "Inventory Service", "Rust", "Auto-scaling: 2-15 pods")
+            Container(notification_service_am, "Notification Service", "Node.js", "Auto-scaling: 1-10 pods")
+            Container(analytics_service_am, "Analytics Service", "Scala/Spark", "Auto-scaling: 1-5 pods")
+        }
+    }
+    
+    System_Boundary(data_americas, "Data Layer - Americas") {
+        ContainerDb(primary_db_am, "Primary DB Cluster", "PostgreSQL", "Multi-master with sharding")
+        ContainerDb(read_replicas_am, "Read Replicas", "PostgreSQL", "5 read replicas with connection pooling")
+        Container(redis_cluster_am, "Redis Cluster", "Redis", "Distributed cache with 6 nodes")
+        Container(kafka_cluster_am, "Kafka Cluster", "Apache Kafka", "Event streaming with 9 brokers")
+        Container(elasticsearch_am, "Elasticsearch", "Elastic Stack", "Search and analytics")
+        Container(object_storage_am, "Object Storage", "AWS S3", "File and media storage")
+    }
+}
+
+System_Boundary(region_europe, "Europe Region (Secondary)") {
+    System_Boundary(edge_europe, "Edge Computing Layer") {
+        Container(edge_uk, "Edge UK", "K3s", "Edge computing nodes")
+        Container(edge_germany, "Edge Germany", "K3s", "Edge computing nodes")
+        Container(edge_france, "Edge France", "K3s", "Edge computing nodes")
+    }
+    
+    System_Boundary(k8s_europe, "Kubernetes Cluster - Europe") {
+        Container(istio_gateway_eu, "Istio Gateway", "Envoy", "Service mesh ingress")
+        Container(api_gateway_eu, "API Gateway", "Kong", "API management with rate limiting")
+        
+        System_Boundary(microservices_eu, "Microservices with Service Mesh") {
+            Container(user_service_eu, "User Service", "Java/Spring Boot", "Auto-scaling: 2-30 pods")
+            Container(product_service_eu, "Product Service", "Node.js", "Auto-scaling: 3-50 pods")
+            Container(order_service_eu, "Order Service", "Python", "Auto-scaling: 2-20 pods")
+            Container(payment_service_eu, "Payment Service", "Go", "Auto-scaling: 2-15 pods")
+        }
+    }
+    
+    System_Boundary(data_europe, "Data Layer - Europe") {
+        ContainerDb(replica_db_eu, "DB Replica Cluster", "PostgreSQL", "Cross-region replication")
+        Container(redis_cluster_eu, "Redis Cluster", "Redis", "Regional cache cluster")
+        Container(kafka_cluster_eu, "Kafka Cluster", "Apache Kafka", "Regional event streaming")
+    }
+}
+
+System_Boundary(region_asia, "Asia Region (Tertiary)") {
+    System_Boundary(edge_asia, "Edge Computing Layer") {
+        Container(edge_japan, "Edge Japan", "K3s", "Edge computing nodes")
+        Container(edge_singapore, "Edge Singapore", "K3s", "Edge computing nodes")
+        Container(edge_australia, "Edge Australia", "K3s", "Edge computing nodes")
+    }
+    
+    System_Boundary(k8s_asia, "Kubernetes Cluster - Asia") {
+        Container(istio_gateway_as, "Istio Gateway", "Envoy", "Service mesh ingress")
+        Container(api_gateway_as, "API Gateway", "Kong", "API management with rate limiting")
+        
+        System_Boundary(microservices_as, "Microservices with Service Mesh") {
+            Container(user_service_as, "User Service", "Java/Spring Boot", "Auto-scaling: 2-25 pods")
+            Container(product_service_as, "Product Service", "Node.js", "Auto-scaling: 3-40 pods")
+            Container(order_service_as, "Order Service", "Python", "Auto-scaling: 1-15 pods")
+        }
+    }
+    
+    System_Boundary(data_asia, "Data Layer - Asia") {
+        ContainerDb(replica_db_as, "DB Replica Cluster", "PostgreSQL", "Cross-region replication")
+        Container(redis_cluster_as, "Redis Cluster", "Redis", "Regional cache cluster")
+        Container(kafka_cluster_as, "Kafka Cluster", "Apache Kafka", "Regional event streaming")
+    }
+}
+
+System_Boundary(global_observability, "Global Observability & Monitoring") {
+    Container(prometheus_fed, "Prometheus Federation", "Prometheus", "Global metrics aggregation")
+    Container(grafana_global, "Global Grafana", "Grafana", "Unified dashboards")
+    Container(jaeger_global, "Global Jaeger", "Jaeger", "Distributed tracing")
+    Container(elk_stack, "ELK Stack", "Elasticsearch/Logstash/Kibana", "Centralized logging")
+    Container(alertmanager, "AlertManager", "Prometheus AlertManager", "Global alerting")
+}
+
+System_Boundary(global_security, "Global Security & Compliance") {
+    Container(identity_provider, "Identity Provider", "Auth0/Keycloak", "Global authentication")
+    Container(secrets_manager, "Secrets Manager", "HashiCorp Vault", "Global secrets management")
+    Container(policy_engine, "Policy Engine", "Open Policy Agent", "Global authorization policies")
+    Container(security_scanner, "Security Scanner", "Twistlock/Aqua", "Container security scanning")
+}
+
+System_Boundary(global_management, "Global Management & Orchestration") {
+    Container(gitops_controller, "GitOps Controller", "ArgoCD/Flux", "Multi-cluster deployment")
+    Container(service_registry, "Service Registry", "Consul", "Global service discovery")
+    Container(config_management, "Config Management", "Consul/etcd", "Global configuration")
+    Container(chaos_engineering, "Chaos Engineering", "Chaos Monkey", "Resilience testing")
+}
+
+' Global DNS and CDN routing
+Rel(user_americas, anycast_dns, "DNS resolution", "DNS")
+Rel(user_europe, anycast_dns, "DNS resolution", "DNS")
+Rel(user_asia, anycast_dns, "DNS resolution", "DNS")
+
+Rel(anycast_dns, global_cdn, "Route to nearest CDN", "HTTP")
+Rel(global_cdn, waf, "Security filtering", "HTTP")
+
+' Regional traffic routing
+Rel(waf, edge_us_east, "Americas traffic", "HTTPS")
+Rel(waf, edge_uk, "Europe traffic", "HTTPS")
+Rel(waf, edge_japan, "Asia traffic", "HTTPS")
+
+' Edge to regional clusters
+Rel(edge_us_east, istio_gateway_am, "Process at edge or forward", "HTTPS")
+Rel(edge_uk, istio_gateway_eu, "Process at edge or forward", "HTTPS")
+Rel(edge_japan, istio_gateway_as, "Process at edge or forward", "HTTPS")
+
+' Regional API gateways
+Rel(istio_gateway_am, api_gateway_am, "Service mesh routing", "HTTP/2")
+Rel(istio_gateway_eu, api_gateway_eu, "Service mesh routing", "HTTP/2")
+Rel(istio_gateway_as, api_gateway_as, "Service mesh routing", "HTTP/2")
+
+' Microservices communication (Americas)
+Rel(api_gateway_am, user_service_am, "User operations", "HTTP/2")
+Rel(api_gateway_am, product_service_am, "Product operations", "HTTP/2")
+Rel(api_gateway_am, order_service_am, "Order operations", "HTTP/2")
+Rel(order_service_am, payment_service_am, "Payment processing", "gRPC")
+Rel(order_service_am, inventory_service_am, "Inventory check", "gRPC")
+Rel(order_service_am, notification_service_am, "Send notifications", "HTTP/2")
+
+' Data layer connections (Americas)
+Rel(user_service_am, primary_db_am, "User data (write)", "PostgreSQL")
+Rel(product_service_am, read_replicas_am, "Product data (read)", "PostgreSQL")
+Rel(order_service_am, primary_db_am, "Order data (write)", "PostgreSQL")
+Rel(user_service_am, redis_cluster_am, "User cache", "Redis")
+Rel(order_service_am, kafka_cluster_am, "Order events", "Kafka")
+Rel(analytics_service_am, elasticsearch_am, "Analytics queries", "HTTP")
+
+' Cross-region data replication
+Rel(primary_db_am, replica_db_eu, "Cross-region replication", "PostgreSQL Streaming")
+Rel(primary_db_am, replica_db_as, "Cross-region replication", "PostgreSQL Streaming")
+Rel(kafka_cluster_am, kafka_cluster_eu, "Event replication", "Kafka MirrorMaker")
+Rel(kafka_cluster_am, kafka_cluster_as, "Event replication", "Kafka MirrorMaker")
+
+' Global observability
+Rel(user_service_am, prometheus_fed, "Metrics", "HTTP")
+Rel(user_service_eu, prometheus_fed, "Metrics", "HTTP")
+Rel(user_service_as, prometheus_fed, "Metrics", "HTTP")
+Rel(prometheus_fed, grafana_global, "Query metrics", "PromQL")
+Rel(order_service_am, jaeger_global, "Distributed traces", "HTTP")
+Rel(api_gateway_am, elk_stack, "Access logs", "HTTP")
+
+' Global security
+Rel(api_gateway_am, identity_provider, "Authentication", "OIDC")
+Rel(api_gateway_eu, identity_provider, "Authentication", "OIDC")
+Rel(api_gateway_as, identity_provider, "Authentication", "OIDC")
+Rel(user_service_am, secrets_manager, "Secrets retrieval", "Vault API")
+Rel(order_service_am, policy_engine, "Authorization", "OPA API")
+
+' Global management
+Rel(gitops_controller, k8s_americas, "Deploy applications", "Kubernetes API")
+Rel(gitops_controller, k8s_europe, "Deploy applications", "Kubernetes API")
+Rel(gitops_controller, k8s_asia, "Deploy applications", "Kubernetes API")
+Rel(service_registry, user_service_am, "Service discovery", "HTTP")
+Rel(chaos_engineering, order_service_am, "Chaos testing", "HTTP")
+
+' IoT integration
+Rel(iot_devices, edge_us_east, "Sensor data", "MQTT")
+Rel(iot_devices, edge_uk, "Sensor data", "MQTT")
+Rel(iot_devices, edge_japan, "Sensor data", "MQTT")
+
+note right of anycast_dns
+  **Global Traffic Management:**
+  • Latency-based routing
+  • Health check failover
+  • Geographic load balancing
+  • DDoS mitigation
+  • SSL/TLS termination
+end note
+
+note right of edge_us_east
+  **Edge Computing Benefits:**
+  • < 10ms response time
+  • Local data processing
+  • Offline capability
+  • Bandwidth optimization
+  • Real-time ML inference
+end note
+
+note left of microservices_am
+  **Auto-Scaling Strategy:**
+  • HPA based on CPU/Memory
+  • VPA for resource optimization
+  • Custom metrics scaling
+  • Predictive scaling
+  • Circuit breaker integration
+end note
+
+note right of primary_db_am
+  **Database Scaling:**
+  • Horizontal sharding
+  • Read replica distribution
+  • Connection pooling
+  • Query optimization
+  • Automated failover
+end note
+
+note left of kafka_cluster_am
+  **Event Streaming:**
+  • Multi-region replication
+  • Exactly-once delivery
+  • Schema evolution
+  • Stream processing
+  • Dead letter queues
+end note
+
+note right of prometheus_fed
+  **Global Monitoring:**
+  • Multi-cluster metrics
+  • SLA/SLO tracking
+  • Capacity planning
+  • Performance optimization
+  • Predictive alerting
+end note
+
+note left of gitops_controller
+  **GitOps Deployment:**
+  • Multi-cluster sync
+  • Canary deployments
+  • Rollback automation
+  • Configuration drift detection
+  • Security policy enforcement
+end note
+
+@enduml

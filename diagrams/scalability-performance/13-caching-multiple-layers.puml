@@ -1,0 +1,189 @@
+@startuml Caching at Multiple Layers
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Multi-Layer Caching Architecture
+
+Person(user, "User", "End user accessing the application")
+
+System_Boundary(edge, "Edge Layer (L1 Cache)") {
+    Container(cdn, "Global CDN", "CloudFront/CloudFlare", "Edge caching for static assets")
+    Container(edge_cache, "Edge Cache", "Varnish/Nginx", "HTTP response caching at edge locations")
+}
+
+System_Boundary(frontend, "Frontend Layer") {
+    Container(web_app, "Web Application", "React/Vue.js", "Client-side application with browser cache")
+    Container(mobile_app, "Mobile App", "React Native", "Mobile app with local storage cache")
+}
+
+System_Boundary(gateway, "API Gateway Layer") {
+    Container(api_gateway, "API Gateway", "Kong/AWS API Gateway", "Request routing with response caching")
+    Container(gateway_cache, "Gateway Cache", "Redis", "API response caching")
+}
+
+System_Boundary(load_balancer, "Load Balancer Layer") {
+    Container(load_balancer, "Load Balancer", "HAProxy/ALB", "Traffic distribution with session affinity")
+}
+
+System_Boundary(services, "Application Layer (L2 Cache)") {
+    Container(user_service, "User Service", "Node.js", "User management with in-memory cache")
+    Container(product_service, "Product Service", "Java/Spring", "Product catalog with local cache")
+    Container(order_service, "Order Service", "Python/FastAPI", "Order processing")
+}
+
+System_Boundary(session_cache, "Session Layer (L3 Cache)") {
+    Container(redis_session, "Redis Session Store", "Redis Cluster", "Distributed session management")
+    Container(redis_app_cache, "Redis Application Cache", "Redis Cluster", "Application-level caching")
+}
+
+System_Boundary(data_cache, "Data Layer (L4 Cache)") {
+    Container(redis_query_cache, "Redis Query Cache", "Redis Cluster", "Database query result caching")
+    Container(memcached, "Memcached", "Memcached Cluster", "High-performance object caching")
+}
+
+System_Boundary(database, "Database Layer (L5 Cache)") {
+    ContainerDb(postgres_primary, "PostgreSQL Primary", "PostgreSQL", "Primary database with query cache")
+    ContainerDb(postgres_replica, "PostgreSQL Replica", "PostgreSQL", "Read replica with buffer cache")
+    Container(db_query_cache, "Database Query Cache", "Built-in Cache", "Internal PostgreSQL query cache")
+}
+
+System_Boundary(storage, "Storage Layer") {
+    Container(static_storage, "Static Storage", "S3/Blob Storage", "Static assets and media files")
+}
+
+System_Boundary(monitoring, "Cache Monitoring") {
+    Container(cache_monitor, "Cache Monitor", "Prometheus/Grafana", "Cache hit rates and performance metrics")
+}
+
+' User interactions with caching
+Rel(user, cdn, "Requests static assets", "HTTPS (cached)")
+Rel(user, edge_cache, "Requests dynamic content", "HTTPS (cached)")
+Rel(user, web_app, "Uses", "HTTPS")
+Rel(user, mobile_app, "Uses", "HTTPS")
+
+' CDN and edge caching
+Rel(cdn, static_storage, "Cache miss → fetch", "HTTPS")
+Rel(edge_cache, api_gateway, "Cache miss → proxy", "HTTP")
+
+' Frontend to API Gateway
+Rel(web_app, api_gateway, "API calls", "HTTPS")
+Rel(mobile_app, api_gateway, "API calls", "HTTPS")
+
+' API Gateway caching
+Rel(api_gateway, gateway_cache, "Cache check", "Redis Protocol")
+Rel(api_gateway, load_balancer, "Cache miss → forward", "HTTP")
+
+' Load balancer to services
+Rel(load_balancer, user_service, "Routes requests", "HTTP")
+Rel(load_balancer, product_service, "Routes requests", "HTTP")
+Rel(load_balancer, order_service, "Routes requests", "HTTP")
+
+' Session management
+Rel(user_service, redis_session, "Session data", "Redis Protocol")
+Rel(product_service, redis_session, "Session data", "Redis Protocol")
+Rel(order_service, redis_session, "Session data", "Redis Protocol")
+
+' Application-level caching
+Rel(user_service, redis_app_cache, "User data cache", "Redis Protocol")
+Rel(product_service, redis_app_cache, "Product cache", "Redis Protocol")
+Rel(order_service, redis_app_cache, "Order cache", "Redis Protocol")
+
+' Query-level caching
+Rel(user_service, redis_query_cache, "Query results", "Redis Protocol")
+Rel(product_service, memcached, "Catalog data", "Memcached Protocol")
+Rel(order_service, redis_query_cache, "Order queries", "Redis Protocol")
+
+' Database connections
+Rel(user_service, postgres_primary, "Writes", "SQL")
+Rel(user_service, postgres_replica, "Reads", "SQL")
+Rel(product_service, postgres_replica, "Reads", "SQL")
+Rel(order_service, postgres_primary, "Writes", "SQL")
+Rel(order_service, postgres_replica, "Reads", "SQL")
+
+' Database internal caching
+Rel(postgres_primary, db_query_cache, "Query plans", "Internal")
+Rel(postgres_replica, db_query_cache, "Query plans", "Internal")
+
+' Cache invalidation and warming
+Rel(postgres_primary, redis_query_cache, "Invalidates on write", "Trigger")
+Rel(redis_app_cache, redis_query_cache, "Cache warming", "Redis Protocol")
+
+' Monitoring
+Rel(cache_monitor, cdn, "Metrics", "HTTPS")
+Rel(cache_monitor, redis_session, "Metrics", "Redis Protocol")
+Rel(cache_monitor, redis_app_cache, "Metrics", "Redis Protocol")
+Rel(cache_monitor, redis_query_cache, "Metrics", "Redis Protocol")
+Rel(cache_monitor, memcached, "Metrics", "Memcached Protocol")
+
+note right of cdn
+  **L1 - Edge Caching:**
+  • Static assets (CSS, JS, images)
+  • TTL: 1 year for versioned assets
+  • Geographic distribution
+  • Automatic compression
+  • Cache hit ratio: 95%+
+end note
+
+note right of gateway_cache
+  **API Gateway Caching:**
+  • GET request responses
+  • TTL: 5-60 minutes
+  • Cache key includes headers
+  • Conditional requests (ETag)
+  • Cache bypass for authenticated requests
+end note
+
+note right of redis_session
+  **L3 - Session Caching:**
+  • User sessions and JWT tokens
+  • TTL: 30 minutes (sliding)
+  • Distributed across nodes
+  • High availability with replication
+  • Session affinity support
+end note
+
+note left of redis_app_cache
+  **Application Caching:**
+  • Computed results
+  • User preferences
+  • Configuration data
+  • TTL: 1-24 hours
+  • Cache-aside pattern
+end note
+
+note left of redis_query_cache
+  **L4 - Query Caching:**
+  • Database query results
+  • Aggregated data
+  • TTL: 5-60 minutes
+  • Write-through invalidation
+  • Cache hit ratio: 80%+
+end note
+
+note left of db_query_cache
+  **L5 - Database Caching:**
+  • Query execution plans
+  • Buffer pool (pages in memory)
+  • Index caching
+  • Statistics caching
+  • Automatic management
+end note
+
+note right of cache_monitor
+  **Cache Metrics:**
+  • Hit/miss ratios per layer
+  • Response time improvements
+  • Memory usage and eviction rates
+  • Cache warming effectiveness
+  • Cost savings analysis
+end note
+
+note left of web_app
+  **Browser Caching:**
+  • HTTP cache headers
+  • Local storage for user data
+  • Service worker caching
+  • Application cache manifest
+  • IndexedDB for offline data
+end note
+
+@enduml

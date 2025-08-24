@@ -1,0 +1,153 @@
+@startuml Adding Caching Layer
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!define FONTAWESOME https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/font-awesome-5
+!include DEVICONS/react.puml
+!include DEVICONS/java.puml
+!include DEVICONS/postgresql.puml
+!include DEVICONS/redis.puml
+!include DEVICONS/nginx.puml
+!include FONTAWESOME/users.puml
+!include FONTAWESOME/server.puml
+!include FONTAWESOME/database.puml
+!include FONTAWESOME/memory.puml
+!include FONTAWESOME/tachometer_alt.puml
+
+title Adding Caching Layer for Performance Optimization
+
+Person(users, "Users", "Application users with frequent data access patterns", $sprite="users")
+
+System_Boundary(frontend_boundary, "Frontend Layer") {
+    Container(web_lb, "Web Load Balancer", "NGINX/AWS ALB", "Routes requests to frontend instances", $sprite="nginx")
+    Container(frontend_1, "Frontend App 1", "React SPA", "User interface with optimized API calls", $sprite="react")
+    Container(frontend_2, "Frontend App 2", "React SPA", "Redundant frontend instance", $sprite="react")
+}
+
+System_Boundary(backend_boundary, "Backend Application Layer") {
+    Container(app_lb, "Application Load Balancer", "AWS ALB/HAProxy", "Distributes load across backend instances", $sprite="nginx")
+    Container(app_1, "App Server 1", "Java Spring Boot", "Business logic with cache-aware data access", $sprite="java")
+    Container(app_2, "App Server 2", "Java Spring Boot", "Identical application instance", $sprite="java")
+    Container(app_3, "App Server 3", "Java Spring Boot", "Additional capacity for peak loads", $sprite="java")
+}
+
+System_Boundary(cache_boundary, "Caching Layer") {
+    Container(redis_primary, "Redis Primary", "Redis 7.x", "Primary cache node for writes and reads", $sprite="redis")
+    Container(redis_replica_1, "Redis Replica 1", "Redis 7.x", "Read replica for load distribution", $sprite="redis")
+    Container(redis_replica_2, "Redis Replica 2", "Redis 7.x", "Additional read replica for high availability", $sprite="redis")
+}
+
+System_Boundary(data_boundary, "Data Persistence Layer") {
+    ContainerDb(primary_db, "Primary Database", "PostgreSQL 15", "Master database for all write operations", $sprite="postgresql")
+    ContainerDb(read_replica_db, "Read Replica DB", "PostgreSQL 15", "Read-only replica for complex queries", $sprite="postgresql")
+}
+
+System_Boundary(monitoring_boundary, "Performance Monitoring") {
+    Container(cache_monitor, "Cache Monitor", "Redis Insight/Grafana", "Cache hit ratio and performance metrics", $sprite="tachometer_alt")
+    Container(perf_monitor, "Performance Monitor", "APM/New Relic", "Application performance and database load", $sprite="memory")
+}
+
+' User interactions
+Rel(users, web_lb, "HTTP/HTTPS", "User requests")
+Rel(web_lb, frontend_1, "Load Balance", "Request distribution")
+Rel(web_lb, frontend_2, "Load Balance", "Request distribution")
+
+' Frontend to backend
+Rel(frontend_1, app_lb, "API Calls", "RESTful requests")
+Rel(frontend_2, app_lb, "API Calls", "RESTful requests")
+
+' Load balancer to applications
+Rel(app_lb, app_1, "Route Requests", "Health-checked routing")
+Rel(app_lb, app_2, "Route Requests", "Health-checked routing")
+Rel(app_lb, app_3, "Route Requests", "Health-checked routing")
+
+' Application to cache layer (primary pattern)
+Rel(app_1, redis_primary, "Cache Operations", "SET/GET/DEL operations")
+Rel(app_2, redis_primary, "Cache Operations", "SET/GET/DEL operations")
+Rel(app_3, redis_primary, "Cache Operations", "SET/GET/DEL operations")
+
+' Application to cache replicas (read operations)
+Rel(app_1, redis_replica_1, "Read Cache", "GET operations only")
+Rel(app_2, redis_replica_1, "Read Cache", "GET operations only")
+Rel(app_3, redis_replica_2, "Read Cache", "GET operations only")
+
+' Cache replication
+Rel(redis_primary, redis_replica_1, "Replication", "Async data sync")
+Rel(redis_primary, redis_replica_2, "Replication", "Async data sync")
+
+' Application to database (cache miss scenarios)
+Rel(app_1, primary_db, "Write Operations", "INSERT/UPDATE/DELETE")
+Rel(app_2, primary_db, "Write Operations", "INSERT/UPDATE/DELETE")
+Rel(app_3, primary_db, "Write Operations", "INSERT/UPDATE/DELETE")
+
+Rel(app_1, read_replica_db, "Read Operations", "SELECT queries on cache miss")
+Rel(app_2, read_replica_db, "Read Operations", "SELECT queries on cache miss")
+Rel(app_3, read_replica_db, "Read Operations", "SELECT queries on cache miss")
+
+' Database replication
+Rel(primary_db, read_replica_db, "Replication", "WAL streaming")
+
+' Monitoring connections
+Rel(redis_primary, cache_monitor, "Metrics", "Performance data")
+Rel(redis_replica_1, cache_monitor, "Metrics", "Performance data")
+Rel(redis_replica_2, cache_monitor, "Metrics", "Performance data")
+
+Rel(app_1, perf_monitor, "APM Data", "Response times/Throughput")
+Rel(app_2, perf_monitor, "APM Data", "Response times/Throughput")
+Rel(app_3, perf_monitor, "APM Data", "Response times/Throughput")
+
+note right of redis_primary
+  **Cache Strategy:**
+  • Cache-aside pattern
+  • Write-through for critical data
+  • TTL-based expiration
+  • LRU eviction policy
+  • Cluster mode for scaling
+end note
+
+note right of app_1
+  **Application Cache Logic:**
+  • Check cache first (GET)
+  • On cache miss: query DB
+  • Update cache with result
+  • Handle cache failures gracefully
+  • Implement circuit breaker
+end note
+
+note right of primary_db
+  **Database Optimization:**
+  • Reduced query load
+  • Optimized for writes
+  • Connection pooling
+  • Query performance tuning
+  • Index optimization
+end note
+
+note right of cache_monitor
+  **Cache Metrics:**
+  • Hit ratio (target: >80%)
+  • Memory usage
+  • Eviction rate
+  • Response time
+  • Connection count
+end note
+
+note top of cache_boundary
+  **Caching Benefits:**
+  • 10-100x faster data access
+  • Reduced database load
+  • Improved user experience
+  • Lower infrastructure costs
+  • Better scalability
+end note
+
+note bottom of data_boundary
+  **Cache Considerations:**
+  • Data consistency
+  • Cache invalidation
+  • Memory management
+  • Network latency
+  • Failover scenarios
+end note
+
+@enduml

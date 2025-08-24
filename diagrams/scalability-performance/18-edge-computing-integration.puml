@@ -1,0 +1,208 @@
+@startuml Edge Computing Integration
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Edge Computing Integration for Low-Latency Global Applications
+
+Person(user_us, "US User", "User in United States")
+Person(user_eu, "EU User", "User in Europe")
+Person(user_asia, "Asia User", "User in Asia Pacific")
+Person(iot_device, "IoT Device", "Smart sensor/device")
+
+System_Boundary(edge_us, "US Edge Location") {
+    Container(edge_server_us, "Edge Server US", "Kubernetes", "Regional edge computing node")
+    Container(edge_cache_us, "Edge Cache US", "Redis", "Local content cache")
+    Container(edge_api_us, "Edge API US", "Node.js", "Lightweight API gateway")
+    Container(edge_ml_us, "Edge ML US", "TensorFlow Lite", "Local ML inference")
+}
+
+System_Boundary(edge_eu, "EU Edge Location") {
+    Container(edge_server_eu, "Edge Server EU", "Kubernetes", "Regional edge computing node")
+    Container(edge_cache_eu, "Edge Cache EU", "Redis", "Local content cache")
+    Container(edge_api_eu, "Edge API EU", "Node.js", "Lightweight API gateway")
+    Container(edge_ml_eu, "Edge ML EU", "TensorFlow Lite", "Local ML inference")
+}
+
+System_Boundary(edge_asia, "Asia Edge Location") {
+    Container(edge_server_asia, "Edge Server Asia", "Kubernetes", "Regional edge computing node")
+    Container(edge_cache_asia, "Edge Cache Asia", "Redis", "Local content cache")
+    Container(edge_api_asia, "Edge API Asia", "Node.js", "Lightweight API gateway")
+    Container(edge_ml_asia, "Edge ML Asia", "TensorFlow Lite", "Local ML inference")
+}
+
+System_Boundary(cdn, "Global CDN Network") {
+    Container(cdn_global, "Global CDN", "CloudFlare/AWS CloudFront", "Static content delivery")
+    Container(edge_routing, "Edge Routing", "Anycast DNS", "Intelligent traffic routing")
+}
+
+System_Boundary(central_cloud, "Central Cloud (Primary Region)") {
+    Container(api_gateway, "API Gateway", "Kong", "Central API management")
+    Container(user_service, "User Service", "Java/Spring Boot", "User management")
+    Container(product_service, "Product Service", "Node.js", "Product catalog")
+    Container(order_service, "Order Service", "Python", "Order processing")
+    Container(ml_training, "ML Training", "TensorFlow", "Model training and updates")
+}
+
+System_Boundary(data_layer, "Central Data Layer") {
+    ContainerDb(primary_db, "Primary Database", "PostgreSQL", "Master data storage")
+    ContainerDb(analytics_db, "Analytics DB", "ClickHouse", "Analytics and reporting")
+    Container(message_queue, "Message Queue", "Apache Kafka", "Event streaming")
+    Container(object_storage, "Object Storage", "AWS S3", "File and media storage")
+}
+
+System_Boundary(edge_management, "Edge Management") {
+    Container(edge_orchestrator, "Edge Orchestrator", "K3s/MicroK8s", "Edge deployment management")
+    Container(config_sync, "Config Sync", "Consul/etcd", "Configuration distribution")
+    Container(monitoring, "Edge Monitoring", "Prometheus", "Edge performance monitoring")
+}
+
+' User interactions with nearest edge
+Rel(user_us, edge_api_us, "API requests (< 10ms)", "HTTPS")
+Rel(user_eu, edge_api_eu, "API requests (< 10ms)", "HTTPS")
+Rel(user_asia, edge_api_asia, "API requests (< 10ms)", "HTTPS")
+Rel(iot_device, edge_api_us, "Sensor data", "MQTT/HTTP")
+
+' CDN and routing
+Rel(user_us, cdn_global, "Static content", "HTTPS")
+Rel(user_eu, cdn_global, "Static content", "HTTPS")
+Rel(user_asia, cdn_global, "Static content", "HTTPS")
+Rel(edge_routing, edge_api_us, "Route US traffic", "DNS")
+Rel(edge_routing, edge_api_eu, "Route EU traffic", "DNS")
+Rel(edge_routing, edge_api_asia, "Route Asia traffic", "DNS")
+
+' Edge processing and caching
+Rel(edge_api_us, edge_cache_us, "Cache lookup", "Redis Protocol")
+Rel(edge_api_us, edge_ml_us, "Local inference", "gRPC")
+Rel(edge_api_us, edge_server_us, "Edge processing", "Internal")
+
+Rel(edge_api_eu, edge_cache_eu, "Cache lookup", "Redis Protocol")
+Rel(edge_api_eu, edge_ml_eu, "Local inference", "gRPC")
+Rel(edge_api_eu, edge_server_eu, "Edge processing", "Internal")
+
+Rel(edge_api_asia, edge_cache_asia, "Cache lookup", "Redis Protocol")
+Rel(edge_api_asia, edge_ml_asia, "Local inference", "gRPC")
+Rel(edge_api_asia, edge_server_asia, "Edge processing", "Internal")
+
+' Edge to central cloud (cache miss/complex operations)
+Rel(edge_server_us, api_gateway, "Complex operations", "HTTPS")
+Rel(edge_server_eu, api_gateway, "Complex operations", "HTTPS")
+Rel(edge_server_asia, api_gateway, "Complex operations", "HTTPS")
+
+' Central cloud services
+Rel(api_gateway, user_service, "User operations", "HTTP")
+Rel(api_gateway, product_service, "Product operations", "HTTP")
+Rel(api_gateway, order_service, "Order operations", "HTTP")
+
+' Data layer connections
+Rel(user_service, primary_db, "User data", "PostgreSQL")
+Rel(product_service, primary_db, "Product data", "PostgreSQL")
+Rel(order_service, primary_db, "Order data", "PostgreSQL")
+Rel(order_service, message_queue, "Order events", "Kafka")
+
+' ML model distribution
+Rel(ml_training, edge_ml_us, "Model updates", "HTTP")
+Rel(ml_training, edge_ml_eu, "Model updates", "HTTP")
+Rel(ml_training, edge_ml_asia, "Model updates", "HTTP")
+Rel(ml_training, object_storage, "Store models", "S3 API")
+
+' Edge management and monitoring
+Rel(edge_orchestrator, edge_server_us, "Deploy/manage", "Kubernetes API")
+Rel(edge_orchestrator, edge_server_eu, "Deploy/manage", "Kubernetes API")
+Rel(edge_orchestrator, edge_server_asia, "Deploy/manage", "Kubernetes API")
+
+Rel(config_sync, edge_api_us, "Configuration", "HTTP")
+Rel(config_sync, edge_api_eu, "Configuration", "HTTP")
+Rel(config_sync, edge_api_asia, "Configuration", "HTTP")
+
+Rel(monitoring, edge_server_us, "Metrics collection", "Prometheus")
+Rel(monitoring, edge_server_eu, "Metrics collection", "Prometheus")
+Rel(monitoring, edge_server_asia, "Metrics collection", "Prometheus")
+
+' Data synchronization
+Rel(edge_cache_us, primary_db, "Data sync (eventual)", "PostgreSQL")
+Rel(edge_cache_eu, primary_db, "Data sync (eventual)", "PostgreSQL")
+Rel(edge_cache_asia, primary_db, "Data sync (eventual)", "PostgreSQL")
+
+' Analytics data flow
+Rel(edge_server_us, analytics_db, "Edge metrics", "ClickHouse")
+Rel(edge_server_eu, analytics_db, "Edge metrics", "ClickHouse")
+Rel(edge_server_asia, analytics_db, "Edge metrics", "ClickHouse")
+
+note right of edge_server_us
+  **Edge Computing Capabilities:**
+  • Local request processing (< 10ms)
+  • Content caching and delivery
+  • Real-time ML inference
+  • IoT data aggregation
+  • Offline operation support
+  • Local data processing
+end note
+
+note right of edge_ml_us
+  **Edge ML Features:**
+  • TensorFlow Lite models
+  • Real-time inference
+  • Model versioning
+  • A/B testing support
+  • Automatic model updates
+  • Privacy-preserving processing
+end note
+
+note left of cdn_global
+  **CDN Integration:**
+  • Static asset delivery
+  • Dynamic content caching
+  • Edge-side includes (ESI)
+  • Image optimization
+  • Compression and minification
+  • DDoS protection
+end note
+
+note right of edge_routing
+  **Intelligent Routing:**
+  • Latency-based routing
+  • Health-aware traffic distribution
+  • Automatic failover
+  • Geographic load balancing
+  • Real-time performance monitoring
+end note
+
+note left of edge_orchestrator
+  **Edge Management:**
+  • Centralized deployment
+  • Configuration management
+  • Health monitoring
+  • Automatic scaling
+  • Security policy enforcement
+  • Resource optimization
+end note
+
+note right of primary_db
+  **Data Consistency Strategy:**
+  • Strong consistency for critical data
+  • Eventual consistency for cached data
+  • Conflict resolution mechanisms
+  • Data synchronization protocols
+  • Backup and recovery
+end note
+
+note left of iot_device
+  **IoT Integration:**
+  • Real-time sensor data processing
+  • Local data aggregation
+  • Reduced bandwidth usage
+  • Offline capability
+  • Edge analytics
+  • Device management
+end note
+
+note right of message_queue
+  **Event Streaming:**
+  • Real-time event processing
+  • Cross-region replication
+  • Event sourcing
+  • Stream processing
+  • Dead letter queues
+  • Exactly-once delivery
+end note
+
+@enduml

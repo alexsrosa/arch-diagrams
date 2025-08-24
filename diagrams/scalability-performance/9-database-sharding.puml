@@ -1,0 +1,202 @@
+@startuml Database Sharding for High-Volume Scaling
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!define FONTAWESOME https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/font-awesome-5
+!include DEVICONS/react.puml
+!include DEVICONS/java.puml
+!include DEVICONS/nodejs.puml
+!include DEVICONS/python.puml
+!include DEVICONS/postgresql.puml
+!include DEVICONS/redis.puml
+!include FONTAWESOME/users.puml
+!include FONTAWESOME/server.puml
+!include FONTAWESOME/database.puml
+!include FONTAWESOME/sitemap.puml
+!include FONTAWESOME/route.puml
+!include FONTAWESOME/balance_scale.puml
+!include FONTAWESOME/chart_line.puml
+
+title Database Sharding Architecture for Massive Scale
+
+Person(users, "Global Users", "Millions of concurrent users worldwide", $sprite="users")
+
+System_Boundary(gateway_boundary, "API Gateway Layer") {
+    Container(api_gateway, "API Gateway", "Kong/Istio Gateway", "Request routing and load balancing", $sprite="balance_scale")
+}
+
+System_Boundary(microservices_boundary, "Auto-Scaled Microservices") {
+    Container(user_service_1, "User Service 1", "Java Spring Boot", "User management with sharding logic", $sprite="java")
+    Container(user_service_2, "User Service 2", "Java Spring Boot", "Horizontally scaled instance", $sprite="java")
+    Container(product_service_1, "Product Service 1", "Node.js Express", "Product catalog with sharding", $sprite="nodejs")
+    Container(product_service_2, "Product Service 2", "Node.js Express", "Horizontally scaled instance", $sprite="nodejs")
+    Container(order_service_1, "Order Service 1", "Python FastAPI", "Order processing with sharding", $sprite="python")
+    Container(order_service_2, "Order Service 2", "Python FastAPI", "Horizontally scaled instance", $sprite="python")
+}
+
+System_Boundary(sharding_boundary, "Database Sharding Layer") {
+    Container(shard_router, "Shard Router", "ProxySQL/Vitess", "Intelligent query routing and load balancing", $sprite="route")
+    Container(shard_manager, "Shard Manager", "Vitess/Custom", "Shard topology and rebalancing", $sprite="sitemap")
+    Container(config_service, "Config Service", "etcd/Consul", "Shard mapping and configuration", $sprite="server")
+}
+
+System_Boundary(user_shards_boundary, "User Data Shards") {
+    ContainerDb(user_shard_1, "User Shard 1", "PostgreSQL", "Users 0-999999 (hash-based)", $sprite="postgresql")
+    ContainerDb(user_shard_1_replica, "User Shard 1 Replica", "PostgreSQL", "Read replica for shard 1", $sprite="postgresql")
+    ContainerDb(user_shard_2, "User Shard 2", "PostgreSQL", "Users 1000000-1999999", $sprite="postgresql")
+    ContainerDb(user_shard_2_replica, "User Shard 2 Replica", "PostgreSQL", "Read replica for shard 2", $sprite="postgresql")
+    ContainerDb(user_shard_3, "User Shard 3", "PostgreSQL", "Users 2000000-2999999", $sprite="postgresql")
+    ContainerDb(user_shard_3_replica, "User Shard 3 Replica", "PostgreSQL", "Read replica for shard 3", $sprite="postgresql")
+}
+
+System_Boundary(product_shards_boundary, "Product Data Shards") {
+    ContainerDb(product_shard_1, "Product Shard 1", "PostgreSQL", "Products by category A-H", $sprite="postgresql")
+    ContainerDb(product_shard_1_replica, "Product Shard 1 Replica", "PostgreSQL", "Read replica for shard 1", $sprite="postgresql")
+    ContainerDb(product_shard_2, "Product Shard 2", "PostgreSQL", "Products by category I-P", $sprite="postgresql")
+    ContainerDb(product_shard_2_replica, "Product Shard 2 Replica", "PostgreSQL", "Read replica for shard 2", $sprite="postgresql")
+    ContainerDb(product_shard_3, "Product Shard 3", "PostgreSQL", "Products by category Q-Z", $sprite="postgresql")
+    ContainerDb(product_shard_3_replica, "Product Shard 3 Replica", "PostgreSQL", "Read replica for shard 3", $sprite="postgresql")
+}
+
+System_Boundary(order_shards_boundary, "Order Data Shards") {
+    ContainerDb(order_shard_1, "Order Shard 1", "PostgreSQL", "Orders by date range 2024-Q1", $sprite="postgresql")
+    ContainerDb(order_shard_1_replica, "Order Shard 1 Replica", "PostgreSQL", "Read replica for shard 1", $sprite="postgresql")
+    ContainerDb(order_shard_2, "Order Shard 2", "PostgreSQL", "Orders by date range 2024-Q2", $sprite="postgresql")
+    ContainerDb(order_shard_2_replica, "Order Shard 2 Replica", "PostgreSQL", "Read replica for shard 2", $sprite="postgresql")
+    ContainerDb(order_shard_3, "Order Shard 3", "PostgreSQL", "Orders by date range 2024-Q3+", $sprite="postgresql")
+    ContainerDb(order_shard_3_replica, "Order Shard 3 Replica", "PostgreSQL", "Read replica for shard 3", $sprite="postgresql")
+}
+
+System_Boundary(cache_boundary, "Distributed Cache Layer") {
+    Container(redis_cluster, "Redis Cluster", "Redis Cluster Mode", "Distributed caching with automatic sharding", $sprite="redis")
+    Container(cache_proxy, "Cache Proxy", "Twemproxy/Envoy", "Cache request routing and pooling", $sprite="server")
+}
+
+System_Boundary(monitoring_boundary, "Monitoring & Analytics") {
+    Container(shard_monitor, "Shard Monitor", "Prometheus/Grafana", "Shard performance and health monitoring", $sprite="chart_line")
+    Container(query_analyzer, "Query Analyzer", "pg_stat_statements", "Query performance across shards", $sprite="chart_line")
+}
+
+' User requests flow
+Rel(users, api_gateway, "API Requests", "High-volume traffic")
+Rel(api_gateway, user_service_1, "User Operations", "Load balanced")
+Rel(api_gateway, user_service_2, "User Operations", "Load balanced")
+Rel(api_gateway, product_service_1, "Product Operations", "Load balanced")
+Rel(api_gateway, product_service_2, "Product Operations", "Load balanced")
+Rel(api_gateway, order_service_1, "Order Operations", "Load balanced")
+Rel(api_gateway, order_service_2, "Order Operations", "Load balanced")
+
+' Microservices to shard router
+Rel(user_service_1, shard_router, "User Queries", "Sharded database access")
+Rel(user_service_2, shard_router, "User Queries", "Sharded database access")
+Rel(product_service_1, shard_router, "Product Queries", "Sharded database access")
+Rel(product_service_2, shard_router, "Product Queries", "Sharded database access")
+Rel(order_service_1, shard_router, "Order Queries", "Sharded database access")
+Rel(order_service_2, shard_router, "Order Queries", "Sharded database access")
+
+' Shard router to configuration
+Rel(shard_router, config_service, "Shard Mapping", "Route determination")
+Rel(shard_manager, config_service, "Topology Updates", "Shard rebalancing")
+
+' Shard router to user shards
+Rel(shard_router, user_shard_1, "Write Operations", "Hash(user_id) % 3 == 0")
+Rel(shard_router, user_shard_2, "Write Operations", "Hash(user_id) % 3 == 1")
+Rel(shard_router, user_shard_3, "Write Operations", "Hash(user_id) % 3 == 2")
+Rel(shard_router, user_shard_1_replica, "Read Operations", "Load balanced reads")
+Rel(shard_router, user_shard_2_replica, "Read Operations", "Load balanced reads")
+Rel(shard_router, user_shard_3_replica, "Read Operations", "Load balanced reads")
+
+' Shard router to product shards
+Rel(shard_router, product_shard_1, "Write Operations", "Category-based sharding")
+Rel(shard_router, product_shard_2, "Write Operations", "Category-based sharding")
+Rel(shard_router, product_shard_3, "Write Operations", "Category-based sharding")
+Rel(shard_router, product_shard_1_replica, "Read Operations", "Load balanced reads")
+Rel(shard_router, product_shard_2_replica, "Read Operations", "Load balanced reads")
+Rel(shard_router, product_shard_3_replica, "Read Operations", "Load balanced reads")
+
+' Shard router to order shards
+Rel(shard_router, order_shard_1, "Write Operations", "Time-based sharding")
+Rel(shard_router, order_shard_2, "Write Operations", "Time-based sharding")
+Rel(shard_router, order_shard_3, "Write Operations", "Time-based sharding")
+Rel(shard_router, order_shard_1_replica, "Read Operations", "Load balanced reads")
+Rel(shard_router, order_shard_2_replica, "Read Operations", "Load balanced reads")
+Rel(shard_router, order_shard_3_replica, "Read Operations", "Load balanced reads")
+
+' Database replication
+Rel(user_shard_1, user_shard_1_replica, "Replication", "Async WAL streaming")
+Rel(user_shard_2, user_shard_2_replica, "Replication", "Async WAL streaming")
+Rel(user_shard_3, user_shard_3_replica, "Replication", "Async WAL streaming")
+Rel(product_shard_1, product_shard_1_replica, "Replication", "Async WAL streaming")
+Rel(product_shard_2, product_shard_2_replica, "Replication", "Async WAL streaming")
+Rel(product_shard_3, product_shard_3_replica, "Replication", "Async WAL streaming")
+Rel(order_shard_1, order_shard_1_replica, "Replication", "Async WAL streaming")
+Rel(order_shard_2, order_shard_2_replica, "Replication", "Async WAL streaming")
+Rel(order_shard_3, order_shard_3_replica, "Replication", "Async WAL streaming")
+
+' Cache layer
+Rel(user_service_1, cache_proxy, "Cache Operations", "Distributed caching")
+Rel(product_service_1, cache_proxy, "Cache Operations", "Distributed caching")
+Rel(order_service_1, cache_proxy, "Cache Operations", "Distributed caching")
+Rel(cache_proxy, redis_cluster, "Cache Requests", "Automatic sharding")
+
+' Monitoring
+Rel(shard_router, shard_monitor, "Performance Metrics", "Query latency/throughput")
+Rel(user_shard_1, query_analyzer, "Query Stats", "Performance analysis")
+Rel(product_shard_1, query_analyzer, "Query Stats", "Performance analysis")
+Rel(order_shard_1, query_analyzer, "Query Stats", "Performance analysis")
+
+note right of shard_router
+  **Sharding Strategy:**
+  • Users: Hash-based (user_id)
+  • Products: Range-based (category)
+  • Orders: Time-based (created_date)
+  • Cross-shard queries minimized
+  • Automatic failover
+end note
+
+note right of user_shard_1
+  **User Sharding Logic:**
+  • Shard Key: hash(user_id) % 3
+  • Even distribution
+  • No cross-shard joins
+  • User data co-location
+  • Consistent hashing
+end note
+
+note right of product_shard_1
+  **Product Sharding Logic:**
+  • Shard Key: product_category
+  • Range-based partitioning
+  • Category co-location
+  • Search optimization
+  • Inventory consistency
+end note
+
+note right of order_shard_1
+  **Order Sharding Logic:**
+  • Shard Key: order_date
+  • Time-based partitioning
+  • Archive old shards
+  • Reporting optimization
+  • Hot/Cold data separation
+end note
+
+note top of sharding_boundary
+  **Sharding Benefits:**
+  • Horizontal scalability
+  • Improved performance
+  • Fault isolation
+  • Independent scaling
+  • Reduced contention
+end note
+
+note bottom of cache_boundary
+  **Sharding Challenges:**
+  • Cross-shard queries
+  • Data rebalancing
+  • Distributed transactions
+  • Operational complexity
+  • Monitoring overhead
+end note
+
+@enduml

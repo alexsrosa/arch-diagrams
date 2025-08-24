@@ -1,0 +1,158 @@
+@startuml CDN Integration Architecture
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!define FONTAWESOME https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/font-awesome-5
+!include DEVICONS/react.puml
+!include DEVICONS/java.puml
+!include DEVICONS/postgresql.puml
+!include DEVICONS/redis.puml
+!include DEVICONS/nginx.puml
+!include FONTAWESOME/users.puml
+!include FONTAWESOME/server.puml
+!include FONTAWESOME/database.puml
+!include FONTAWESOME/cloud.puml
+!include FONTAWESOME/globe.puml
+!include FONTAWESOME/images.puml
+!include FONTAWESOME/file_code.puml
+
+title CDN Integration for Global Content Delivery
+
+Person(users_na, "North America Users", "Users accessing from NA region", $sprite="users")
+Person(users_eu, "Europe Users", "Users accessing from EU region", $sprite="users")
+Person(users_asia, "Asia Users", "Users accessing from APAC region", $sprite="users")
+
+System_Boundary(cdn_boundary, "Content Delivery Network") {
+    Container(cdn_na, "CDN Edge - NA", "CloudFlare/AWS CloudFront", "North America edge locations", $sprite="globe")
+    Container(cdn_eu, "CDN Edge - EU", "CloudFlare/AWS CloudFront", "Europe edge locations", $sprite="globe")
+    Container(cdn_asia, "CDN Edge - ASIA", "CloudFlare/AWS CloudFront", "Asia-Pacific edge locations", $sprite="globe")
+    Container(cdn_origin, "CDN Origin Shield", "CloudFlare/AWS CloudFront", "Origin shield for cache optimization", $sprite="cloud")
+}
+
+System_Boundary(static_boundary, "Static Content Storage") {
+    Container(static_storage, "Static Assets Storage", "AWS S3/Azure Blob", "Images, CSS, JS, fonts, videos", $sprite="images")
+    Container(build_artifacts, "Build Artifacts", "CI/CD Pipeline Output", "Compiled frontend bundles", $sprite="file_code")
+}
+
+System_Boundary(frontend_boundary, "Dynamic Web Layer") {
+    Container(web_lb, "Web Load Balancer", "AWS ALB/NGINX Plus", "Routes dynamic content requests", $sprite="nginx")
+    Container(frontend_1, "Frontend App 1", "React SPA", "Serves dynamic HTML and API responses", $sprite="react")
+    Container(frontend_2, "Frontend App 2", "React SPA", "Redundant frontend instance", $sprite="react")
+}
+
+System_Boundary(backend_boundary, "Application Backend") {
+    Container(api_gateway, "API Gateway", "Kong/AWS API Gateway", "API routing and rate limiting", $sprite="server")
+    Container(app_1, "App Server 1", "Java Spring Boot", "Business logic and data processing", $sprite="java")
+    Container(app_2, "App Server 2", "Java Spring Boot", "Horizontal scaling instance", $sprite="java")
+}
+
+System_Boundary(cache_boundary, "Caching Layer") {
+    Container(redis_cache, "Redis Cache", "Redis Cluster", "Application data caching", $sprite="redis")
+}
+
+System_Boundary(data_boundary, "Data Layer") {
+    ContainerDb(database, "Database", "PostgreSQL Cluster", "Persistent data storage", $sprite="postgresql")
+}
+
+' User requests to CDN edges
+Rel(users_na, cdn_na, "HTTPS Requests", "Static + Dynamic content")
+Rel(users_eu, cdn_eu, "HTTPS Requests", "Static + Dynamic content")
+Rel(users_asia, cdn_asia, "HTTPS Requests", "Static + Dynamic content")
+
+' CDN edge to origin shield
+Rel(cdn_na, cdn_origin, "Cache Miss", "Fetch from origin shield")
+Rel(cdn_eu, cdn_origin, "Cache Miss", "Fetch from origin shield")
+Rel(cdn_asia, cdn_origin, "Cache Miss", "Fetch from origin shield")
+
+' CDN origin shield to static storage
+Rel(cdn_origin, static_storage, "Static Content", "Images, CSS, JS, fonts")
+Rel(cdn_origin, build_artifacts, "App Bundles", "React build artifacts")
+
+' CDN origin shield to web layer for dynamic content
+Rel(cdn_origin, web_lb, "Dynamic Content", "HTML, API responses")
+
+' Web load balancer to frontend
+Rel(web_lb, frontend_1, "Route Requests", "Dynamic content generation")
+Rel(web_lb, frontend_2, "Route Requests", "Dynamic content generation")
+
+' Frontend to API Gateway
+Rel(frontend_1, api_gateway, "API Calls", "RESTful API requests")
+Rel(frontend_2, api_gateway, "API Calls", "RESTful API requests")
+
+' API Gateway to backend services
+Rel(api_gateway, app_1, "Route API", "Business logic calls")
+Rel(api_gateway, app_2, "Route API", "Business logic calls")
+
+' Backend to cache and database
+Rel(app_1, redis_cache, "Cache Operations", "Read/Write cached data")
+Rel(app_2, redis_cache, "Cache Operations", "Read/Write cached data")
+Rel(app_1, database, "Database Queries", "Persistent data operations")
+Rel(app_2, database, "Database Queries", "Persistent data operations")
+
+' Build pipeline to static storage
+Rel(build_artifacts, static_storage, "Deploy Assets", "CI/CD deployment")
+
+note right of cdn_na
+  **CDN Edge Features:**
+  • Geographic proximity
+  • HTTP/2 and HTTP/3 support
+  • Brotli/Gzip compression
+  • Image optimization
+  • Cache headers optimization
+end note
+
+note right of static_storage
+  **Static Content Types:**
+  • Images (WebP, AVIF formats)
+  • CSS/JS bundles (minified)
+  • Fonts (WOFF2)
+  • Videos (adaptive streaming)
+  • Documentation/PDFs
+end note
+
+note right of cdn_origin
+  **Origin Shield Benefits:**
+  • Reduced origin load
+  • Cache hit ratio improvement
+  • Bandwidth cost optimization
+  • Origin protection
+  • Faster cache warming
+end note
+
+note right of web_lb
+  **Dynamic Content Handling:**
+  • Personalized content
+  • User-specific data
+  • Real-time updates
+  • API responses
+  • Server-side rendering
+end note
+
+note top of cdn_boundary
+  **CDN Performance Benefits:**
+  • 50-90% faster load times
+  • Reduced bandwidth costs
+  • Improved SEO scores
+  • Better user experience
+  • Global scalability
+end note
+
+note bottom of frontend_boundary
+  **Caching Strategy:**
+  • Static assets: 1 year TTL
+  • HTML: No cache/short TTL
+  • API responses: Conditional
+  • Images: Aggressive caching
+  • Versioned assets: Immutable
+end note
+
+note left of users_na
+  **Global Distribution:**
+  • 200+ edge locations
+  • Sub-50ms latency
+  • 99.9% availability
+  • DDoS protection
+  • SSL/TLS termination
+end note
+
+@enduml
