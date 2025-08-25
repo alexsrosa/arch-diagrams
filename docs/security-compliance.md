@@ -29,7 +29,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 1. API Gateway Security
 
-![API Gateway Security](../docs/generated-diagrams/security-compliance/01-api-gateway-security.png)
+![API Gateway Security](generated-diagrams/security-compliance/01-api-gateway-security.png)
 
 **Description:** API Gateway security implementation with authentication, authorization, rate limiting, request validation, and protection against common attacks.
 
@@ -55,7 +55,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 2. Certificate Management
 
-![Certificate Management](../docs/generated-diagrams/security-compliance/02-certificate-management.png)
+![Certificate Management](generated-diagrams/security-compliance/02-certificate-management.png)
 
 **Description:** Digital certificate management system with automatic renewal, secure distribution, and expiration monitoring.
 
@@ -81,7 +81,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 3. Data Encryption
 
-![Data Encryption](../docs/generated-diagrams/security-compliance/03-data-encryption.png)
+![Data Encryption](generated-diagrams/security-compliance/03-data-encryption.png)
 
 **Description:** End-to-end encryption implementation for data in transit and at rest, including key management and secure algorithms.
 
@@ -107,7 +107,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 4. DDoS Protection
 
-![DDoS Protection](../docs/generated-diagrams/security-compliance/04-ddos-protection.png)
+![DDoS Protection](generated-diagrams/security-compliance/04-ddos-protection.png)
 
 **Description:** DDoS attack protection system with multiple defense layers, automatic detection, and real-time mitigation.
 
@@ -133,7 +133,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 5. Identity Provider Integration
 
-![Identity Provider Integration](../docs/generated-diagrams/security-compliance/05-identity-provider-integration.png)
+![Identity Provider Integration](generated-diagrams/security-compliance/05-identity-provider-integration.png)
 
 **Description:** Integration with external identity providers (Active Directory, LDAP, Social Login) for centralized authentication and SSO.
 
@@ -159,7 +159,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 6. JWT Token Flow
 
-![JWT Token Flow](../docs/generated-diagrams/security-compliance/06-jwt-token-flow.png)
+![JWT Token Flow](generated-diagrams/security-compliance/06-jwt-token-flow.png)
 
 **Description:** JWT (JSON Web Token) flow implementation for stateless authentication with validation, refresh tokens, and adequate security.
 
@@ -185,7 +185,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 7. Multi-Factor Authentication
 
-![Multi-Factor Authentication](../docs/generated-diagrams/security-compliance/07-multi-factor-authentication.png)
+![Multi-Factor Authentication](generated-diagrams/security-compliance/07-multi-factor-authentication.png)
 
 **Description:** Multi-factor authentication system with support for TOTP, SMS, push notifications, and biometrics to increase access security.
 
@@ -211,7 +211,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 8. Network Segmentation
 
-![Network Segmentation](../docs/generated-diagrams/security-compliance/08-network-segmentation.png)
+![Network Segmentation](generated-diagrams/security-compliance/08-network-segmentation.png)
 
 **Description:** Network segmentation architecture with VLANs, subnets, firewalls, and traffic control for resource isolation and protection.
 
@@ -237,7 +237,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 9. OAuth2 Flow
 
-![OAuth2 Flow](../docs/generated-diagrams/security-compliance/09-oauth2-flow.png)
+![OAuth2 Flow](generated-diagrams/security-compliance/09-oauth2-flow.png)
 
 **Description:** Complete OAuth2 flow implementation with different grant types, scope validation, and secure third-party integration.
 
@@ -263,7 +263,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 10. PCI DSS Compliance
 
-![PCI DSS Compliance](../docs/generated-diagrams/security-compliance/10-pci-dss-compliance.png)
+![PCI DSS Compliance](generated-diagrams/security-compliance/10-pci-dss-compliance.png)
 
 **Description:** PCI DSS compliant architecture for secure credit card data processing, including tokenization and isolation.
 
@@ -289,7 +289,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 11. Role-Based Access Control
 
-![Role-Based Access Control](../docs/generated-diagrams/security-compliance/11-role-based-access-control.png)
+![Role-Based Access Control](generated-diagrams/security-compliance/11-role-based-access-control.png)
 
 **Description:** RBAC (Role-Based Access Control) system with role hierarchy, granular permissions, and centralized access management.
 
@@ -315,7 +315,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 12. SAML Authentication
 
-![SAML Authentication](../docs/generated-diagrams/security-compliance/12-saml-authentication.png)
+![SAML Authentication](generated-diagrams/security-compliance/12-saml-authentication.png)
 
 **Description:** SAML authentication implementation for enterprise SSO with Identity Provider, Service Provider, and secure assertion exchange.
 
@@ -341,7 +341,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 13. Secrets Management
 
-![Secrets Management](../docs/generated-diagrams/security-compliance/13-secrets-management.png)
+![Secrets Management](generated-diagrams/security-compliance/13-secrets-management.png)
 
 **Description:** Centralized secrets management system (passwords, API keys, certificates) with automatic rotation and controlled access.
 
@@ -367,7 +367,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 14. Security Monitoring
 
-![Security Monitoring](../docs/generated-diagrams/security-compliance/14-security-monitoring.png)
+![Security Monitoring](generated-diagrams/security-compliance/14-security-monitoring.png)
 
 **Description:** Security monitoring system with SIEM, anomaly detection, real-time alerts, and automated incident response.
 
@@ -393,7 +393,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 15. SSL/TLS Termination
 
-![SSL/TLS Termination](../docs/generated-diagrams/security-compliance/15-ssltls-termination.png)
+![SSL/TLS Termination](generated-diagrams/security-compliance/15-ssltls-termination.png)
 
 **Description:** SSL/TLS termination configuration in load balancers with certificates, secure cipher suites and HTTPS redirection.
 
@@ -419,7 +419,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 16. Threat Detection
 
-![Threat Detection](../docs/generated-diagrams/security-compliance/16-threat-detection.png)
+![Threat Detection](generated-diagrams/security-compliance/16-threat-detection.png)
 
 **Description:** Threat detection system with behavioral analysis, machine learning and threat intelligence feeds integration.
 
@@ -445,7 +445,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 17. VPN Gateway
 
-![VPN Gateway](../docs/generated-diagrams/security-compliance/17-vpn-gateway.png)
+![VPN Gateway](generated-diagrams/security-compliance/17-vpn-gateway.png)
 
 **Description:** VPN gateway for secure remote access with strong authentication, encrypted tunnels and granular access control.
 
@@ -471,7 +471,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 18. WAF Protection
 
-![WAF Protection](../docs/generated-diagrams/security-compliance/18-waf-protection.png)
+![WAF Protection](generated-diagrams/security-compliance/18-waf-protection.png)
 
 **Description:** Web Application Firewall with OWASP Top 10 protection, custom rules and machine learning for attack detection.
 
@@ -497,7 +497,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 19. Zero Trust Architecture
 
-![Zero Trust Architecture](../docs/generated-diagrams/security-compliance/19-zero-trust-architecture.png)
+![Zero Trust Architecture](generated-diagrams/security-compliance/19-zero-trust-architecture.png)
 
 **Description:** Zero Trust architecture that trusts no user or device by default, continuously verifying identity and context.
 
@@ -523,7 +523,7 @@ This section documents 20 diagrams focused on security patterns, compliance, and
 
 ## 20. Compliance Audit Trail
 
-![Compliance Audit Trail](../docs/generated-diagrams/security-compliance/20-compliance-audit-trail.png)
+![Compliance Audit Trail](generated-diagrams/security-compliance/20-compliance-audit-trail.png)
 
 **Description:** Complete audit system that maintains trail of all actions, changes and access for regulatory compliance and investigations.
 

@@ -29,7 +29,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 1. API Rate Limiting
 
-![API Rate Limiting](../docs/generated-diagrams/sequence-diagram-solutions/01-api-rate-limiting.png)
+![API Rate Limiting](generated-diagrams/sequence-diagram-solutions/01-api-rate-limiting.png)
 
 **Description:** Request rate control flow (rate limiting) in APIs, showing how limits are verified, applied, and how clients are notified when they exceed limits.
 
@@ -55,7 +55,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 2. Async Message Processing
 
-![Async Message Processing](../docs/generated-diagrams/sequence-diagram-solutions/02-async-message-processing.png)
+![Async Message Processing](generated-diagrams/sequence-diagram-solutions/02-async-message-processing.png)
 
 **Description:** Asynchronous message processing flow using queues, showing production, consumption, acknowledgment, and failure handling.
 
@@ -81,7 +81,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 3. Authentication Flow
 
-![Authentication Flow](../docs/generated-diagrams/sequence-diagram-solutions/03-authentication-flow.png)
+![Authentication Flow](generated-diagrams/sequence-diagram-solutions/03-authentication-flow.png)
 
 **Description:** Complete authentication flow showing login, credential validation, token generation and resource authorization.
 
@@ -107,7 +107,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 4. Cache Invalidation
 
-![Cache Invalidation](../docs/generated-diagrams/sequence-diagram-solutions/04-cache-invalidation.png)
+![Cache Invalidation](generated-diagrams/sequence-diagram-solutions/04-cache-invalidation.png)
 
 **Description:** Cache invalidation flow showing how data is updated, cache is invalidated and new information is loaded.
 
@@ -133,7 +133,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 5. Circuit Breaker Flow
 
-![Circuit Breaker Flow](../docs/generated-diagrams/sequence-diagram-solutions/05-circuit-breaker-flow.png)
+![Circuit Breaker Flow](generated-diagrams/sequence-diagram-solutions/05-circuit-breaker-flow.png)
 
 **Description:** Circuit Breaker pattern flow showing states (closed, open, half-open), failure detection and gradual recovery.
 
@@ -159,7 +159,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 6. Database Transaction
 
-![Database Transaction](../docs/generated-diagrams/sequence-diagram-solutions/06-database-transaction.png)
+![Database Transaction](generated-diagrams/sequence-diagram-solutions/06-database-transaction.png)
 
 **Description:** Database transaction flow showing begin, operations, commit/rollback and error handling.
 
@@ -185,7 +185,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 7. Event Sourcing
 
-![Event Sourcing](../docs/generated-diagrams/sequence-diagram-solutions/07-event-sourcing.png)
+![Event Sourcing](generated-diagrams/sequence-diagram-solutions/07-event-sourcing.png)
 
 **Description:** Event Sourcing flow showing event capture, storage, state projection and event replay.
 
@@ -211,7 +211,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 8. File Upload Process
 
-![File Upload Process](../docs/generated-diagrams/sequence-diagram-solutions/08-file-upload-process.png)
+![File Upload Process](generated-diagrams/sequence-diagram-solutions/08-file-upload-process.png)
 
 **Description:** File upload flow showing validation, storage, asynchronous processing and completion notification.
 
@@ -237,7 +237,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 9. Health Check System
 
-![Health Check System](../docs/generated-diagrams/sequence-diagram-solutions/09-health-check-system.png)
+![Health Check System](generated-diagrams/sequence-diagram-solutions/09-health-check-system.png)
 
 **Description:** Health check flow showing component verification, status aggregation and response to load balancers.
 
@@ -263,7 +263,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 10. Load Balancer Routing
 
-![Load Balancer Routing](../docs/generated-diagrams/sequence-diagram-solutions/10-load-balancer-routing.png)
+![Load Balancer Routing](generated-diagrams/sequence-diagram-solutions/10-load-balancer-routing.png)
 
 **Description:** Load balancer routing flow showing backend selection, health checking and automatic failover.
 
@@ -289,7 +289,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 11. Microservice Communication
 
-![Microservice Communication](../docs/generated-diagrams/sequence-diagram-solutions/11-microservice-communication.png)
+![Microservice Communication](generated-diagrams/sequence-diagram-solutions/11-microservice-communication.png)
 
 **Description:** Communication flow between microservices showing synchronous, asynchronous calls and failure handling.
 
@@ -315,7 +315,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 12. Order Processing
 
-![Order Processing](../docs/generated-diagrams/sequence-diagram-solutions/12-order-processing.png)
+![Order Processing](generated-diagrams/sequence-diagram-solutions/12-order-processing.png)
 
 **Description:** Order processing flow showing validation, inventory reservation, payment and fulfillment.
 
@@ -341,7 +341,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 13. Payment Gateway
 
-![Payment Gateway](../docs/generated-diagrams/sequence-diagram-solutions/13-payment-gateway.png)
+![Payment Gateway](generated-diagrams/sequence-diagram-solutions/13-payment-gateway.png)
 
 **Description:** Payment processing flow showing tokenization, authorization, capture and notification webhooks.
 
@@ -367,7 +367,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 14. Retry Mechanism
 
-![Retry Mechanism](../docs/generated-diagrams/sequence-diagram-solutions/14-retry-mechanism.png)
+![Retry Mechanism](generated-diagrams/sequence-diagram-solutions/14-retry-mechanism.png)
 
 **Description:** Retry mechanism flow showing attempts, exponential backoff, jitter and eventual failure.
 
@@ -393,7 +393,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 15. Saga Pattern
 
-![Saga Pattern](../docs/generated-diagrams/sequence-diagram-solutions/15-saga-pattern.png)
+![Saga Pattern](generated-diagrams/sequence-diagrams/15-saga-pattern.png)
 
 **Description:** Saga pattern flow for distributed transactions showing step execution and compensation in case of failure.
 
@@ -419,7 +419,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 16. Service Discovery
 
-![Service Discovery](../docs/generated-diagrams/sequence-diagram-solutions/16-service-discovery.png)
+![Service Discovery](generated-diagrams/sequence-diagram-solutions/16-service-discovery.png)
 
 **Description:** Service discovery flow showing registration, lookup, health checking and endpoint updates.
 
@@ -445,7 +445,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 17. Session Management
 
-![Session Management](../docs/generated-diagrams/sequence-diagram-solutions/17-session-management.png)
+![Session Management](generated-diagrams/sequence-diagram-solutions/17-session-management.png)
 
 **Description:** Session management flow showing creation, validation, renewal and session expiration.
 
@@ -471,7 +471,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 18. Timeout Handling
 
-![Timeout Handling](../docs/generated-diagrams/sequence-diagram-solutions/18-timeout-handling.png)
+![Timeout Handling](generated-diagrams/sequence-diagram-solutions/18-timeout-handling.png)
 
 **Description:** Timeout handling flow showing configuration, detection, cancellation and recovery strategies.
 
@@ -497,7 +497,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 19. User Registration
 
-![User Registration](../docs/generated-diagrams/sequence-diagram-solutions/19-user-registration.png)
+![User Registration](generated-diagrams/sequence-diagram-solutions/19-user-registration.png)
 
 **Description:** User registration flow showing validation, account creation, email verification and activation.
 
@@ -523,7 +523,7 @@ This section documents 20 sequence diagrams that illustrate communication flows,
 
 ## 20. Webhook Processing
 
-![Webhook Processing](../docs/generated-diagrams/sequence-diagram-solutions/20-webhook-processing.png)
+![Webhook Processing](generated-diagrams/sequence-diagram-solutions/20-webhook-processing.png)
 
 **Description:** Webhook processing flow showing receipt, validation, asynchronous processing and confirmation.
 
