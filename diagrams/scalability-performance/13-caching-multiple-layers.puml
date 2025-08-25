@@ -20,7 +20,7 @@ System_Boundary(gateway, "API Gateway Layer") {
     Container(gateway_cache, "Gateway Cache", "Redis", "API response caching")
 }
 
-System_Boundary(load_balancer, "Load Balancer Layer") {
+System_Boundary(load_balancer_layer, "Load Balancer Layer") {
     Container(load_balancer, "Load Balancer", "HAProxy/ALB", "Traffic distribution with session affinity")
 }
 

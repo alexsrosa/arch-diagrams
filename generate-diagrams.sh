@@ -30,16 +30,17 @@ show_help() {
     echo "Usage: $0 [OPTION]"
     echo ""
     echo "Options:"
-    echo "  -a, --all       Generate PNG and Draw.io XML (default)"
-    echo "  -p, --png       Generate PNG only"
+    echo "  -p, --png       Generate PNG only (default)"
     echo "  -d, --drawio    Generate Draw.io XML only"
+    echo "  -a, --all       Generate PNG and Draw.io XML"
     echo "  -c, --clean     Clean generated files first"
     echo "  -h, --help      Display this help"
     echo ""
     echo "Examples:"
-    echo "  $0              # Generate PNG and Draw.io XML"
+    echo "  $0              # Generate PNG only"
     echo "  $0 --png       # Generate PNG only"
     echo "  $0 --drawio    # Generate Draw.io XML only"
+    echo "  $0 --all       # Generate PNG and Draw.io XML"
     echo "  $0 --clean     # Clean and generate all"
 }
 
@@ -94,7 +95,7 @@ list_generated() {
 }
 
 # Simple argument parsing
-ACTION="all"
+ACTION="png"
 while [[ $# -gt 0 ]]; do
   case $1 in
     -p|--png)

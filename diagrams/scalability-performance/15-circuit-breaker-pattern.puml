@@ -10,7 +10,7 @@ System_Boundary(gateway, "API Gateway Layer") {
     Container(circuit_breaker, "Circuit Breaker", "Hystrix/Resilience4j", "Failure detection and prevention")
 }
 
-System_Boundary(load_balancer, "Load Balancer Layer") {
+System_Boundary(load_balancer_layer, "Load Balancer Layer") {
     Container(load_balancer, "Load Balancer", "HAProxy/ALB", "Traffic distribution with health checks")
 }
 

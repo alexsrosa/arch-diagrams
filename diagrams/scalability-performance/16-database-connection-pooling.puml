@@ -1,5 +1,5 @@
 @startuml
-!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Sequence.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 
 title Database Connection Pooling for Efficient Load Handling
 
@@ -35,87 +35,42 @@ System_Boundary(monitoring, "Connection Pool Monitoring") {
     Container(alerts, "Alerting", "AlertManager", "Pool exhaustion alerts")
 }
 
-' Request flow sequence
-user1 -> lb : 1. HTTP Request
-activate lb
-lb -> app1 : 2. Route to App 1
-activate app1
-app1 -> pool1 : 3. Get connection from pool
-activate pool1
-pool1 -> db_primary : 4. Use existing connection
-activate db_primary
-db_primary --> pool1 : 5. Query result
-deactivate db_primary
-pool1 --> app1 : 6. Return connection to pool
-deactivate pool1
-app1 --> lb : 7. HTTP Response
-deactivate app1
-lb --> user1 : 8. Response
-deactivate lb
+' User interactions
+Rel(user1, lb, "HTTP Request", "HTTPS")
+Rel(user2, lb, "Concurrent Request", "HTTPS")
+Rel(user3, lb, "High load request", "HTTPS")
 
-' Concurrent request handling
-user2 -> lb : 9. Concurrent Request
-activate lb
-lb -> app2 : 10. Route to App 2
-activate app2
-app2 -> pool2 : 11. Get connection from pool
-activate pool2
-pool2 -> db_replica1 : 12. Use pooled connection
-activate db_replica1
-db_replica1 --> pool2 : 13. Read result
-deactivate db_replica1
-pool2 --> app2 : 14. Return connection
-deactivate pool2
-app2 --> lb : 15. Response
-deactivate app2
-lb --> user2 : 16. Response
-deactivate lb
+' Load balancer routing
+Rel(lb, app1, "Route to App 1", "HTTP")
+Rel(lb, app2, "Route to App 2", "HTTP")
+Rel(lb, app3, "Route to App 3", "HTTP")
 
-' High load scenario
-user3 -> lb : 17. High load request
-activate lb
-lb -> app3 : 18. Route to App 3
-activate app3
-app3 -> pool3 : 19. Request connection (pool busy)
-activate pool3
-note right of pool3 : Pool at capacity,\nrequest waits in queue
-pool3 -> db_replica2 : 20. Wait for available connection
-activate db_replica2
-db_replica2 --> pool3 : 21. Connection available
-deactivate db_replica2
-pool3 --> app3 : 22. Connection acquired
-deactivate pool3
-app3 --> lb : 23. Response (after wait)
-deactivate app3
-lb --> user3 : 24. Response
-deactivate lb
+' Application to connection pool relationships
+Rel(app1, pool1, "Manages pool lifecycle", "Internal")
+Rel(app2, pool2, "Manages pool lifecycle", "Internal")
+Rel(app3, pool3, "Manages pool lifecycle", "Internal")
 
-' Connection pool relationships
-app1 <--> pool1 : Manages pool lifecycle
-app2 <--> pool2 : Manages pool lifecycle
-app3 <--> pool3 : Manages pool lifecycle
+' Connection pool to database relationships
+Rel(pool1, db_primary, "5 write connections", "SQL")
+Rel(pool1, db_replica1, "3 read connections", "SQL")
+Rel(pool1, db_replica2, "2 read connections", "SQL")
 
-' Database connections
-pool1 <--> db_primary : 5 write connections
-pool1 <--> db_replica1 : 3 read connections
-pool1 <--> db_replica2 : 2 read connections
+Rel(pool2, db_primary, "3 write connections", "SQL")
+Rel(pool2, db_replica1, "4 read connections", "SQL")
+Rel(pool2, db_replica2, "3 read connections", "SQL")
 
-pool2 <--> db_primary : 3 write connections
-pool2 <--> db_replica1 : 4 read connections
-pool2 <--> db_replica2 : 3 read connections
-
-pool3 <--> db_primary : 4 write connections
-pool3 <--> db_replica1 : 3 read connections
-pool3 <--> db_replica2 : 3 read connections
+Rel(pool3, db_primary, "4 write connections", "SQL")
+Rel(pool3, db_replica1, "3 read connections", "SQL")
+Rel(pool3, db_replica2, "3 read connections", "SQL")
 
 ' Monitoring relationships
-pool1 --> metrics : Pool statistics
-pool2 --> metrics : Pool statistics
-pool3 --> metrics : Pool statistics
-metrics --> dashboard : Visualize metrics
-metrics --> alerts : Trigger alerts
+Rel(pool1, metrics, "Pool statistics", "HTTP")
+Rel(pool2, metrics, "Pool statistics", "HTTP")
+Rel(pool3, metrics, "Pool statistics", "HTTP")
+Rel(metrics, dashboard, "Visualize metrics", "HTTP")
+Rel(metrics, alerts, "Trigger alerts", "HTTP")
 
-note over pool1, pool3
+note right of pool1
   **Connection Pool Configuration:**
   • Maximum pool size: 10 connections
   • Minimum idle connections: 2
@@ -125,7 +80,7 @@ note over pool1, pool3
   • Leak detection threshold: 60 seconds
 end note
 
-note over db_primary, db_replica2
+note right of db_primary
   **Database Connection Limits:**
   • Primary DB: max_connections = 200
   • Each Replica: max_connections = 150
@@ -134,7 +89,7 @@ note over db_primary, db_replica2
   • Prevents connection exhaustion
 end note
 
-note over metrics, alerts
+note right of metrics
   **Pool Monitoring Metrics:**
   • Active connections count
   • Idle connections count
@@ -164,7 +119,7 @@ note right of lb
   • Connection draining during deployment
 end note
 
-note over user1, user3
+note left of user1
   **Concurrent Request Handling:**
   • Multiple users served simultaneously
   • Connection pools prevent blocking
