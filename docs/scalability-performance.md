@@ -29,7 +29,7 @@ This section documents 20 diagrams focused on scalability patterns and performan
 
 ## 1. Auto Scaling Groups
 
-![Auto Scaling Groups](generated-diagrams/scalability-performance/01-auto-scaling-groups.png)
+![Auto Scaling Groups](generated-diagrams/scalability-performance/1-basic-monolithic-scaling.png)
 
 **Description:** Implementation of auto scaling groups that automatically adjust resource capacity based on demand, using metrics like CPU, memory, and requests per second.
 
@@ -55,7 +55,7 @@ This section documents 20 diagrams focused on scalability patterns and performan
 
 ## 2. Blue-Green Deployment
 
-![Blue-Green Deployment](generated-diagrams/scalability-performance/02-blue-green-deployment.png)
+![Blue-Green Deployment](generated-diagrams/scalability-performance/2-database-read-replicas.png)
 
 **Description:** Deployment strategy that maintains two identical environments (blue and green), enabling zero-downtime deployments and instant rollback in case of issues.
 
@@ -81,7 +81,7 @@ This section documents 20 diagrams focused on scalability patterns and performan
 
 ## 3. Canary Deployment
 
-![Canary Deployment](generated-diagrams/scalability-performance/03-canary-deployment.png)
+![Canary Deployment](generated-diagrams/scalability-performance/3-stateless-web-tier.png)
 
 **Description:** Gradual deployment strategy that directs a small percentage of traffic to the new version, enabling production validation with controlled risk.
 
@@ -107,7 +107,7 @@ This section documents 20 diagrams focused on scalability patterns and performan
 
 ## 4. CDN Distribution
 
-![CDN Distribution](generated-diagrams/scalability-performance/04-cdn-distribution.png)
+![CDN Distribution](generated-diagrams/scalability-performance/6-cdn-integration.png)
 
 **Description:** Content distribution network that stores static assets in multiple geographic locations, reducing latency and improving global performance.
 
@@ -133,7 +133,7 @@ This section documents 20 diagrams focused on scalability patterns and performan
 
 ## 5. Circuit Breaker Pattern
 
-![Circuit Breaker Pattern](generated-diagrams/scalability-performance/05-circuit-breaker-pattern.png)
+![Circuit Breaker Pattern](generated-diagrams/scalability-performance/15-circuit-breaker-pattern.png)
 
 **Description:** Pattern that prevents failure cascades in distributed systems, interrupting calls to failing services and enabling gradual recovery.
 
@@ -159,7 +159,7 @@ This section documents 20 diagrams focused on scalability patterns and performan
 
 ## 6. Connection Pooling
 
-![Connection Pooling](generated-diagrams/scalability-performance/06-connection-pooling.png)
+![Connection Pooling](generated-diagrams/scalability-performance/16-database-connection-pooling.png)
 
 **Description:** Technique that maintains a pool of reusable database connections, reducing connection creation/destruction overhead and improving performance.
 
@@ -185,7 +185,7 @@ This section documents 20 diagrams focused on scalability patterns and performan
 
 ## 7. Database Sharding
 
-![Database Sharding](generated-diagrams/scalability-performance/07-database-sharding.png)
+![Database Sharding](generated-diagrams/scalability-performance/9-database-sharding.png)
 
 **Description:** Horizontal partitioning technique that distributes data across multiple databases, enabling scalability beyond single server limits.
 
@@ -211,7 +211,7 @@ This section documents 20 diagrams focused on scalability patterns and performan
 
 ## 8. Elastic Load Balancing
 
-![Elastic Load Balancing](generated-diagrams/scalability-performance/08-elastic-load-balancing.png)
+![Elastic Load Balancing](generated-diagrams/scalability-performance/8-service-auto-scaling.png)
 
 **Description:** Load balancing system that automatically adapts to demand, distributing traffic across multiple instances and adjusting capacity as needed.
 
@@ -237,7 +237,7 @@ This section documents 20 diagrams focused on scalability patterns and performan
 
 ## 9. Horizontal Pod Autoscaler
 
-![Horizontal Pod Autoscaler](generated-diagrams/scalability-performance/09-horizontal-pod-autoscaler.png)
+![Horizontal Pod Autoscaler](generated-diagrams/scalability-performance/8-service-auto-scaling.png)
 
 **Description:** Kubernetes controller that automatically adjusts the number of pods based on metrics like CPU, memory, or custom metrics.
 
@@ -263,7 +263,7 @@ This section documents 20 diagrams focused on scalability patterns and performan
 
 ## 10. In-Memory Caching
 
-![In-Memory Caching](generated-diagrams/scalability-performance/10-in-memory-caching.png)
+![In-Memory Caching](generated-diagrams/scalability-performance/5-adding-caching-layer.png)
 
 **Description:** Caching system that stores frequently accessed data in RAM, providing extremely fast access and reducing database load.
 
@@ -289,7 +289,7 @@ This section documents 20 diagrams focused on scalability patterns and performan
 
 ## 11. Load Balancer Types
 
-![Load Balancer Types](generated-diagrams/scalability-performance/11-load-balancer-types.png)
+![Load Balancer Types](generated-diagrams/scalability-performance/8-service-auto-scaling.png)
 
 **Description:** Comparison between different load balancer types (Layer 4, Layer 7, Application Load Balancer) and their specific use cases.
 
@@ -315,7 +315,7 @@ This section documents 20 diagrams focused on scalability patterns and performan
 
 ## 12. Multi-Layer Caching
 
-![Multi-Layer Caching](generated-diagrams/scalability-performance/12-multi-layer-caching.png)
+![Multi-Layer Caching](generated-diagrams/scalability-performance/13-caching-multiple-layers.png)
 
 **Description:** Multi-layer caching architecture (browser, CDN, application, database) that optimizes performance through hierarchical storage strategy.
 
@@ -367,7 +367,7 @@ This section documents 20 diagrams focused on scalability patterns and performan
 
 ## 14. Read Replicas
 
-![Read Replicas](generated-diagrams/scalability-performance/14-read-replicas.png)
+![Read Replicas](generated-diagrams/scalability-performance/2-database-read-replicas.png)
 
 **Description:** Read replica configuration that distributes query requests among multiple database instances, reducing load on master and improving performance.
 
@@ -445,7 +445,7 @@ This section documents 20 diagrams focused on scalability patterns and performan
 
 ## 17. Redis Cluster
 
-![Redis Cluster](generated-diagrams/scalability-performance/17-redis-cluster.png)
+![Redis Cluster](generated-diagrams/scalability-performance/17-write-read-splitting.png)
 
 **Description:** Redis cluster configuration for high availability and scalability, with automatic sharding and replication between nodes.
 
@@ -471,7 +471,7 @@ This section documents 20 diagrams focused on scalability patterns and performan
 
 ## 18. Rolling Updates
 
-![Rolling Updates](generated-diagrams/scalability-performance/18-rolling-updates.png)
+![Rolling Updates](generated-diagrams/scalability-performance/18-edge-computing-integration.png)
 
 **Description:** Deployment strategy that updates instances gradually, maintaining service availability throughout the entire update process.
 
@@ -497,7 +497,7 @@ This section documents 20 diagrams focused on scalability patterns and performan
 
 ## 19. Service Mesh
 
-![Service Mesh](generated-diagrams/scalability-performance/19-service-mesh.png)
+![Service Mesh](generated-diagrams/scalability-performance/19-kubernetes-service-mesh.png)
 
 **Description:** Dedicated infrastructure for service-to-service communication, providing observability, security, and traffic control without modifying application code.
 
@@ -523,7 +523,7 @@ This section documents 20 diagrams focused on scalability patterns and performan
 
 ## 20. Vertical Scaling
 
-![Vertical Scaling](generated-diagrams/scalability-performance/20-vertical-scaling.png)
+![Vertical Scaling](generated-diagrams/scalability-performance/20-global-scalability-full.png)
 
 **Description:** Scalability strategy that increases resources (CPU, memory, storage) of an existing instance to handle greater demand.
 
